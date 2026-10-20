@@ -13,4 +13,29 @@
         FROM sys_user
     </select>
 
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_user(username, password, real_name, role)
+        VALUES (#{username}, #{password}, #{realName}, #{role})
+    </insert>
+
+    <update id="update">
+        UPDATE sys_user
+        SET username  = #{username},
+            real_name = #{realName},
+            role      = #{role}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE
+        FROM sys_user
+        where id = #{id};
+    </delete>
+
+    <select id="selectByUsername" resultType="com.ctts.enity.User">
+        select id, username, password, real_name, role
+        from sys_user
+        where username = #{username}
+    </select>
+
 </mapper>

@@ -3,29 +3,19 @@ package com.ctts.controller;
 import com.ctts.enity.User;
 import com.ctts.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 @RestController
 @RequestMapping("/users")
 public class UserController {
 
+    private static final BCryptPasswordEncoder ENCODER = new BCryptPasswordEncoder();
+
     @Autowired
     private UserMapper userMapper;
-
-    private static final Map<Long, User> USERS = new LinkedHashMap<>();
-    private static final AtomicLong ID_GEN = new AtomicLong(4);
-
-    static {
-        USERS.put(1L, new User(1L, "zhangsan", "张三", 1));
-        USERS.put(2L, new User(2L, "lisi", "李四", 1));
-        USERS.put(3L, new User(3L, "wanglaoshi", "王老师", 2));
-    }
 
     // 查询全部用户，可按角色筛选：GET /users?role=1
     @GetMapping
@@ -42,16 +32,14 @@ public class UserController {
     // 查询指定id用户
     @GetMapping("/{id}")
     public User get(@PathVariable Long id) {
-        User user = userMapper.selectById(id);
-        return user;
+        return userMapper.selectById(id);
     }
 
     // 增加新用户
     @PostMapping
     public User add(@RequestBody User user) {
-        long id = ID_GEN.incrementAndGet();
-        user.setId(id);
-        USERS.put(id, user);
+        user.setPassword(ENCODER.encode(user.getPassword()));
+        userMapper.insert(user);
         return user;
     }
 
@@ -59,14 +47,26 @@ public class UserController {
     @PutMapping("/{id}")
     public User update(@PathVariable Long id, @RequestBody User user) {
         user.setId(id);
-        USERS.put(id, user);
+        userMapper.update(user);
         return user;
     }
 
     // 删除指定id用户
     @DeleteMapping("/{id}")
     public String delete(@PathVariable Long id) {
-        USERS.remove(id);
+        userMapper.delete(id);
         return "deleted " + id;
+    }
+
+    //用户登录接口
+    @PostMapping("/login")
+    public User login(@RequestBody User user){
+        User dbUser = userMapper.selectByUsername(user.getUsername());
+
+        if(dbUser == null||!ENCODER.matches(user.getPassword(),dbUser.getPassword())){
+            return null;
+        }
+        dbUser.setPassword(null);
+        return dbUser;
     }
 }
