@@ -55,12 +55,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public User login(User user) {
         User dbUser = userMapper.selectByUsername(user.getUsername());
-        if( dbUser==null || ENCODER.matches(user.getPassword(),dbUser.getPassword()))
-        {
+        if (dbUser == null || !ENCODER.matches(user.getPassword(), dbUser.getPassword())) {
             return null;
         }
         dbUser.setPassword(null);
         return dbUser;
-
     }
 }

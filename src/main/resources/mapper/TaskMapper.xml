@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ctts.mapper.TaskMapper">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO task (project_id, title, description, deadline, total_score)
+        VALUES (#{projectId}, #{title}, #{description}, #{deadline}, #{totalScore})
+    </insert>
+
+    <update id="update">
+        UPDATE task
+        SET project_id  = #{projectId},
+            title       = #{title},
+            description = #{description},
+            deadline    = #{deadline},
+            total_score = #{totalScore}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE
+        FROM task
+        WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" resultType="com.ctts.enity.Task">
+        SELECT id,
+               project_id,
+               title,
+               description,
+               deadline,
+               total_score,
+               create_time,
+               update_time
+        FROM task
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByCondition" resultType="com.ctts.enity.Task">
+    SELECT id,
+    project_id,
+    title,
+    description,
+    deadline,
+    total_score,
+    create_time,
+    update_time
+    FROM task
+
+    <where>
+        <if test="projectId != null">
+            AND project_id = #{projectId}
+        </if>
+    </where>
+
+</select>
+
+    <select id="selectByPage" resultType="com.ctts.enity.Task">
+        SELECT id,
+        project_id,
+        title,
+        description,
+        deadline,
+        total_score,
+        create_time,
+        update_time
+        FROM task
+
+        <where>
+            <if test="projectId != null">
+                AND project_id = #{projectId}
+            </if>
+        </where>
+        LIMIT #{offset},#{pageSize}
+
+    </select>
+
+</mapper>

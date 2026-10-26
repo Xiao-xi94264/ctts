@@ -1,10 +1,8 @@
 package com.ctts.controller;
 
 import com.ctts.enity.User;
-import com.ctts.mapper.UserMapper;
 import com.ctts.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,10 +11,6 @@ import java.util.List;
 @RequestMapping("/users")
 public class UserController {
 
-    private static final BCryptPasswordEncoder ENCODER = new BCryptPasswordEncoder();
-
-    @Autowired
-    private UserMapper userMapper;
     @Autowired
     private UserService userService;
 
@@ -29,7 +23,7 @@ public class UserController {
     // 查询指定id用户
     @GetMapping("/{id}")
     public User get(@PathVariable Long id) {
-        return userMapper.selectById(id);
+        return userService.getById(id);
     }
 
     // 增加新用户
@@ -38,11 +32,16 @@ public class UserController {
         return userService.add(user);
     }
 
+    //用户登录接口
+    @PostMapping("/login")
+    public User login(@RequestBody User user) {
+        return userService.login(user);
+    }
+
     // 更改指定id用户
     @PutMapping("/{id}")
     public User update(@PathVariable Long id, @RequestBody User user) {
-       userService.update(id,user);
-       return user;
+        return userService.update(id, user);
     }
 
     // 删除指定id用户
@@ -50,12 +49,5 @@ public class UserController {
     public String delete(@PathVariable Long id) {
         userService.delete(id);
         return "deleted " + id;
-    }
-
-    //用户登录接口
-    @PostMapping("/login")
-    public User login(@RequestBody User user){
-        User dbUser = userService.login(user);
-        return dbUser;
     }
 }
