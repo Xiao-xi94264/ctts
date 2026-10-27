@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ctts.mapper.TaskSubmissionMapper">
+    <insert id="insert" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO task_submission (task_id, user_id, content, file_url)
+        VALUES (#{taskId}, #{userId}, #{content}, #{fileUrl})
+    </insert>
+
+    <update id="update">
+        UPDATE task_submission
+        SET task_id  = #{taskId},
+            user_id  = #{userId},
+            content  = #{content},
+            file_url = #{fileUrl}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM task_submission
+        WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" resultType="com.ctts.enity.TaskSubmission">
+        SELECT id, task_id, user_id, content, file_url, submit_time, status
+        FROM task_submission
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectAll" resultType="com.ctts.enity.TaskSubmission">
+        SELECT id, task_id, user_id, content, file_url, submit_time, status
+        FROM task_submission
+    </select>
+</mapper>
