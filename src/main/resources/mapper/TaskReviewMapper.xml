@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ctts.mapper.TaskReviewMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO task_review (submission_id, reviewer_id, score, `comment`)
+        VALUES (#{submissionId}, #{reviewerId}, #{score}, #{comment})
+    </insert>
+
+    <update id="update">
+        UPDATE task_review
+        SET score   = #{score},
+            `comment` = #{comment}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM task_review
+        WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" resultType="com.ctts.enity.TaskReview">
+        SELECT id, submission_id, reviewer_id, score, `comment`, review_time
+        FROM task_review
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectAll" resultType="com.ctts.enity.TaskReview">
+        SELECT id, submission_id, reviewer_id, score, `comment`, review_time
+        FROM task_review
+    </select>
+
+</mapper>
