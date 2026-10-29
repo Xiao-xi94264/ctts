@@ -2,6 +2,7 @@ package com.ctts.mapper;
 
 import com.ctts.enity.TaskSubmission;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -17,5 +18,7 @@ public interface TaskSubmissionMapper {
     List<TaskSubmission> selectAll();
     //根据id查询全部提交
     TaskSubmission selectById(Long id);
+    //修改评审状态
+    int updateStatus(@Param("id")Long id,@Param("status")Integer status);
 
 }

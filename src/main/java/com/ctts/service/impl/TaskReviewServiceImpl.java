@@ -3,9 +3,11 @@ package com.ctts.service.impl;
 
 import com.ctts.enity.TaskReview;
 import com.ctts.mapper.TaskReviewMapper;
+import com.ctts.mapper.TaskSubmissionMapper;
 import com.ctts.service.TaskReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -14,6 +16,8 @@ public class TaskReviewServiceImpl implements TaskReviewService {
 
     @Autowired
     private TaskReviewMapper taskReviewMapper;
+    @Autowired
+    private TaskSubmissionMapper taskSubmissionMapper;
 
     @Override
     public List<TaskReview> list() {
@@ -25,10 +29,13 @@ public class TaskReviewServiceImpl implements TaskReviewService {
         return taskReviewMapper.selectById(id);
     }
 
+    @Transactional
     @Override
     public TaskReview add(TaskReview taskReview) {
         taskReviewMapper.insert(taskReview);
         // review_time 由数据库默认值生成，不回填 Java 对象，回查一次拿完整数据
+        //更改评审状态
+        taskSubmissionMapper.updateStatus(taskReview.getSubmissionId(),2);
         return taskReviewMapper.selectById(taskReview.getId());
     }
 
