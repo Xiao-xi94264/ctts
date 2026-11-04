@@ -3,6 +3,7 @@ package com.ctts.service;
 import com.ctts.enity.User;
 
 import java.util.List;
+import java.util.Map;
 
 public interface UserService {
     List<User> list(Integer role);
@@ -15,6 +16,6 @@ public interface UserService {
 
     void delete(Long id);
 
-    User login(User user);
+    Map<String,Object> login(User user);
 }
 

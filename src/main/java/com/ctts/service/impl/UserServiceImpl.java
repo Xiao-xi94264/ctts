@@ -3,11 +3,14 @@ package com.ctts.service.impl;
 import com.ctts.enity.User;
 import com.ctts.mapper.UserMapper;
 import com.ctts.service.UserService;
+import com.ctts.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -16,6 +19,8 @@ public class UserServiceImpl implements UserService {
     private UserMapper userMapper;
 
     private static final BCryptPasswordEncoder ENCODER = new BCryptPasswordEncoder();
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @Override
     public List<User> list(Integer role) {
@@ -53,12 +58,16 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User login(User user) {
+    public Map<String,Object> login(User user) {
         User dbUser = userMapper.selectByUsername(user.getUsername());
         if (dbUser == null || !ENCODER.matches(user.getPassword(), dbUser.getPassword())) {
             return null;
         }
         dbUser.setPassword(null);
-        return dbUser;
+        String token = jwtUtil.generate(dbUser.getId(), dbUser.getRole());
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("token",token);
+        result.put("user",dbUser);
+        return result;
     }
 }

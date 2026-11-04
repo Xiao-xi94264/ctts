@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/users")
@@ -34,7 +35,7 @@ public class UserController {
 
     //用户登录接口
     @PostMapping("/login")
-    public User login(@RequestBody User user) {
+    public Map<String, Object> login(@RequestBody User user) {
         return userService.login(user);
     }
 

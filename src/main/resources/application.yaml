@@ -23,3 +23,8 @@ mybatis:
 logging:
   level:
     com.ctts.mapper: debug
+
+ctts:
+  jwt:
+    secret: ctts-campus-training-task-system-jwt-secret-2026
+    expire: 7200000   # token 有效期 2 小时（毫秒）
