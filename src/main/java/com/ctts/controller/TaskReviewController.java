@@ -1,5 +1,6 @@
 package com.ctts.controller;
 
+import com.ctts.common.Result;
 import com.ctts.enity.TaskReview;
 import com.ctts.service.TaskReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,32 +17,32 @@ public class TaskReviewController {
 
     //查询全部评审
     @GetMapping
-    public List<TaskReview> list() {
-        return taskReviewService.list();
+    public Result<List<TaskReview>> list() {
+        return Result.ok(taskReviewService.list());
     }
 
     //根据id查询评审
     @GetMapping("/{id}")
-    public TaskReview getById(@PathVariable Long id) {
-        return taskReviewService.getById(id);
+    public Result<TaskReview> getById(@PathVariable Long id) {
+        return Result.ok(taskReviewService.getById(id));
     }
 
     //新增评审
     @PostMapping
-    public TaskReview add(@RequestBody TaskReview review) {
-        return taskReviewService.add(review);
+    public Result<TaskReview> add(@RequestBody TaskReview review) {
+        return Result.ok(taskReviewService.add(review));
     }
 
     //修改评审（只改分数和评语）
     @PutMapping("/{id}")
-    public TaskReview update(@PathVariable Long id, @RequestBody TaskReview review) {
-        return taskReviewService.update(id, review);
+    public Result<TaskReview> update(@PathVariable Long id, @RequestBody TaskReview review) {
+        return Result.ok(taskReviewService.update(id, review));
     }
 
     //删除评审
     @DeleteMapping("/{id}")
-    public String delete(@PathVariable Long id) {
+    public Result<Void> delete(@PathVariable Long id) {
         taskReviewService.delete(id);
-        return "deleted " + id;
+        return Result.ok(null);
     }
 }

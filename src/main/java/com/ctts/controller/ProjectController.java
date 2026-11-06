@@ -1,5 +1,6 @@
 package com.ctts.controller;
 
+import com.ctts.common.Result;
 import com.ctts.enity.Project;
 import com.ctts.service.ProjectService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,32 +17,32 @@ public class ProjectController {
 
     //查询全部项目
     @GetMapping
-    public List<Project> list(){
-        return projectService.list();
+    public Result<List<Project>> list() {
+        return Result.ok(projectService.list());
     }
 
     //根据id查询项目
     @GetMapping("/{id}")
-    public Project getById(@PathVariable Long id){
-        return projectService.getById(id);
+    public Result<Project> getById(@PathVariable Long id) {
+        return Result.ok(projectService.getById(id));
     }
 
     //新增项目
     @PostMapping
-    public Project add(@RequestBody Project project){
-       return projectService.add(project);
+    public Result<Project> add(@RequestBody Project project) {
+        return Result.ok(projectService.add(project));
     }
 
     //根据指定id修改项目
     @PutMapping("/{id}")
-    public Project update(@PathVariable Long id,@RequestBody Project project){
-        return projectService.update(id,project);
+    public Result<Project> update(@PathVariable Long id, @RequestBody Project project) {
+        return Result.ok(projectService.update(id, project));
     }
 
     //删除指定id项目
     @DeleteMapping("/{id}")
-    public String delete(@PathVariable Long id){
+    public Result<Void> delete(@PathVariable Long id) {
         projectService.delete(id);
-        return "delete" + id;
+        return Result.ok(null);
     }
 }

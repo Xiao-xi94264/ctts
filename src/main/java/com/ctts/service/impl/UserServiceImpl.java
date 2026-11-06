@@ -1,5 +1,6 @@
 package com.ctts.service.impl;
 
+import com.ctts.common.BusinessException;
 import com.ctts.enity.User;
 import com.ctts.mapper.UserMapper;
 import com.ctts.service.UserService;
@@ -54,14 +55,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void delete(Long id) {
-        userMapper.delete(id);
+        if (userMapper.delete(id) == 0) {
+            // 影响行数为 0 说明这条记录根本不存在，删除"成功"是假象
+            throw new BusinessException(404, "用户不存在，无法删除");
+        }
     }
 
     @Override
     public Map<String,Object> login(User user) {
         User dbUser = userMapper.selectByUsername(user.getUsername());
         if (dbUser == null || !ENCODER.matches(user.getPassword(), dbUser.getPassword())) {
-            return null;
+            // 用户不存在与密码错误合并成同一提示，防账号枚举
+            throw new BusinessException(401, "用户名或密码错误");
         }
         dbUser.setPassword(null);
         String token = jwtUtil.generate(dbUser.getId(), dbUser.getRole());
