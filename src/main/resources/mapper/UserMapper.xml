@@ -3,13 +3,13 @@
 <mapper namespace="com.ctts.mapper.UserMapper">
 
     <select id="selectById" resultType="com.ctts.enity.User">
-        SELECT id, username, real_name, role
+        SELECT id, username, real_name, role, status
         FROM sys_user
         WHERE id = #{id}
     </select>
 
     <select id="selectAll" resultType="com.ctts.enity.User">
-        SELECT id, username, real_name, role
+        SELECT id, username, real_name, role, status
         FROM sys_user
     </select>
 
@@ -36,7 +36,7 @@
     </delete>
 
     <select id="selectByUsername" resultType="com.ctts.enity.User">
-        select id, username, password, real_name, role
+        select id, username, password, real_name, role, status
         from sys_user
         where username = #{username}
     </select>

@@ -43,7 +43,9 @@ public class UserServiceImpl implements UserService {
     public User add(User user) {
         user.setPassword(ENCODER.encode(user.getPassword()));
         userMapper.insert(user);
-        return user;
+        // insert 只写了 4 列，status/create_time 由数据库默认值填充，不会回填到 Java 对象
+        // 回查一次拿数据库真实状态；selectById 不查 password 列，返回体天然不含哈希
+        return userMapper.selectById(user.getId());
     }
 
     @Override
@@ -72,6 +74,11 @@ public class UserServiceImpl implements UserService {
         if (dbUser == null || !ENCODER.matches(user.getPassword(), dbUser.getPassword())) {
             // 用户不存在与密码错误合并成同一提示，防账号枚举
             throw new BusinessException(401, "用户名或密码错误");
+        }
+        // 密码已确认正确，才谈"这个账号让不让进"；顺序不能反，否则任意密码都能探测账号是否存在
+        // 用 equals 而非 != 1：status 为 null 时 != 会自动拆箱抛 NPE
+        if (!Integer.valueOf(1).equals(dbUser.getStatus())) {
+            throw new BusinessException(403, "账号已被禁用，请联系管理员");
         }
         dbUser.setPassword(null);
         String token = jwtUtil.generate(dbUser.getId(), dbUser.getRole());
