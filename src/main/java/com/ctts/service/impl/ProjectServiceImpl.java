@@ -1,5 +1,6 @@
 package com.ctts.service.impl;
 
+import com.ctts.common.BusinessException;
 import com.ctts.enity.Project;
 import com.ctts.mapper.ProjectMapper;
 import com.ctts.service.ProjectService;
@@ -33,8 +34,14 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public Project update(Long id, Project project) {
         project.setId(id);
+        // 所有可更新字段都没传 → <set> 会生成空的 SET，SQL 语法错误，必须在这里拦住
+        if (project.getTitle() == null && project.getDescription() == null
+                && project.getStartDate() == null && project.getEndDate() == null) {
+            throw new BusinessException(400, "没有需要更新的字段");
+        }
         projectMapper.update(project);
-        return project;
+        // 部分更新后入参不完整，回查数据库拿真实状态返回
+        return projectMapper.selectById(id);
     }
 
     @Override

@@ -1,9 +1,11 @@
 package com.ctts.controller;
 
 import com.ctts.common.Result;
+import com.ctts.common.ValidationGroups;
 import com.ctts.enity.Project;
 import com.ctts.service.ProjectService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,13 +29,13 @@ public class ProjectController {
         return Result.ok(projectService.getById(id));
     }
 
-    //新增项目
+    //新增项目：只校验 Create 组
     @PostMapping
-    public Result<Project> add(@RequestBody Project project) {
+    public Result<Project> add(@Validated(ValidationGroups.Create.class) @RequestBody Project project) {
         return Result.ok(projectService.add(project));
     }
 
-    //根据指定id修改项目
+    //修改项目：部分更新，只改传了的字段，不做必填校验
     @PutMapping("/{id}")
     public Result<Project> update(@PathVariable Long id, @RequestBody Project project) {
         return Result.ok(projectService.update(id, project));

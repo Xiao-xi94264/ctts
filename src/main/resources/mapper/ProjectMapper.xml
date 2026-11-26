@@ -7,12 +7,16 @@
         VALUES (#{title}, #{description}, #{teacherId}, #{startDate}, #{endDate})
     </insert>
 
+    <!-- 部分更新：只写传了值的列。teacher_id 有意不放进来——项目归属教师不可改。
+         <set> 只负责去掉末尾多余逗号，不处理"所有条件都不成立"，空 SET 由 Service 层拦截 -->
     <update id="update">
         UPDATE training_project
-        SET title       = #{title},
-            description = #{description},
-            start_date  = #{startDate},
-            end_date    = #{endDate}
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="startDate != null">start_date = #{startDate},</if>
+            <if test="endDate != null">end_date = #{endDate},</if>
+        </set>
         WHERE id = #{id}
     </update>
 
