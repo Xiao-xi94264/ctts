@@ -27,9 +27,11 @@ public class TaskReviewController {
         return Result.ok(taskReviewService.getById(id));
     }
 
-    //新增评审
+    //新增评审：评审人只认 token，请求体里的 reviewerId 一律忽略
     @PostMapping
-    public Result<TaskReview> add(@RequestBody TaskReview review) {
+    public Result<TaskReview> add(@RequestBody TaskReview review,
+                                  @RequestAttribute("userId") Long userId) {
+        review.setReviewerId(userId);
         return Result.ok(taskReviewService.add(review));
     }
 

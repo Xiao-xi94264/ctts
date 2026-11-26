@@ -29,9 +29,11 @@ public class ProjectController {
         return Result.ok(projectService.getById(id));
     }
 
-    //新增项目：只校验 Create 组
+    //新增项目：只校验 Create 组；teacherId 由 token 决定，不再作为客户端输入校验
     @PostMapping
-    public Result<Project> add(@Validated(ValidationGroups.Create.class) @RequestBody Project project) {
+    public Result<Project> add(@Validated(ValidationGroups.Create.class) @RequestBody Project project,
+                               @RequestAttribute("userId") Long userId) {
+        project.setTeacherId(userId);
         return Result.ok(projectService.add(project));
     }
 

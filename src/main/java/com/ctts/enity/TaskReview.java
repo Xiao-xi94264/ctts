@@ -13,9 +13,9 @@ import java.time.LocalDateTime;
 public class TaskReview {
     private Long id;
     private Long submissionId;
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Long reviewerId;
     private Integer score;
     private String comment;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime reviewTime;
 }

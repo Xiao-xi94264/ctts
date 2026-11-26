@@ -26,9 +26,11 @@ public class TaskSubmissionController {
         return Result.ok(taskSubmissionService.getById(id));
     }
 
-    //提交任务
+    //提交任务：userId 只认 token，请求体里传什么都不作数
     @PostMapping
-    public Result<TaskSubmission> add(@RequestBody TaskSubmission submission) {
+    public Result<TaskSubmission> add(@RequestBody TaskSubmission submission,
+                                      @RequestAttribute("userId") Long userId) {
+        submission.setUserId(userId);
         return Result.ok(taskSubmissionService.add(submission));
     }
 

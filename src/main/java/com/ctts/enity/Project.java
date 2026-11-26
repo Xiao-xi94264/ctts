@@ -21,7 +21,7 @@ public class Project {
 
     private String description;
 
-    @NotNull(message = "teacherId 不能为空",groups = ValidationGroups.Create.class)
+    // teacherId 由 Controller 从 token 覆盖，不再是客户端输入，故不校验必填
     private Long teacherId;
 
     @NotNull(message = "开始日期不能为空",groups = ValidationGroups.Create.class)
