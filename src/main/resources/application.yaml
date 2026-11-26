@@ -25,6 +25,9 @@ mybatis:
 logging:
   level:
     com.ctts.mapper: debug
+    # 登录会走 selectByUsername，MyBatis 的 debug 会把参数逐个打印 → 明文密码进日志
+    # 日志级别可按 logger 名做树状覆盖，此处只让 UserMapper 闭嘴，其它 Mapper 照常看 SQL
+    com.ctts.mapper.UserMapper: info
 
 ctts:
   jwt:

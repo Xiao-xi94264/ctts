@@ -1,7 +1,6 @@
 package com.ctts.common;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
@@ -19,10 +18,9 @@ import java.util.stream.Collectors;
  * 全局异常处理器：把各类异常统一翻译成 Result 结构。
  * HTTP 状态码与 body 里的 code 保持一致，前端与监控可按状态码直接判断。
  */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     // 1. 业务异常：code 与 message 由业务代码决定
     @ExceptionHandler(BusinessException.class)

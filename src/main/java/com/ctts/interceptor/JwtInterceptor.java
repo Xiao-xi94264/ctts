@@ -6,12 +6,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.io.IOException;
 
+@Slf4j
 @Component
 public class JwtInterceptor implements HandlerInterceptor {
 
@@ -26,6 +28,7 @@ public class JwtInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
         String header = request.getHeader("Authorization");
         if (header == null || !header.startsWith("Bearer ")) {
+            log.warn("未携带 token 被拦截: {} {}", request.getMethod(), request.getRequestURI());
             writeError(response, 401, "未登录：请在 Authorization 请求头中携带 Bearer <token>");
             return false;
         }
@@ -37,11 +40,14 @@ public class JwtInterceptor implements HandlerInterceptor {
             role = claims.get("role", Integer.class);
             request.setAttribute("role", role);
         } catch (Exception e) {
+            // 只记异常摘要，不记 token 本身
+            log.warn("token 校验失败: {} {} - {}", request.getMethod(), request.getRequestURI(), e.getMessage());
             writeError(response, 401, "登录状态无效或已过期，请重新登录");
             return false;
         }
         // 已认证，再判断授权，角色权限不对返回 403
         if (!checkRole(request, role)) {
+            log.warn("权限不足: {} {} role={}", request.getMethod(), request.getRequestURI(), role);
             writeError(response, 403, "权限不足：当前角色不能执行该操作");
             return false;
         }
