@@ -1,6 +1,8 @@
 package com.ctts.interceptor;
 
 import com.ctts.common.Result;
+import com.ctts.enity.User;
+import com.ctts.mapper.UserMapper;
 import com.ctts.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
@@ -20,6 +22,9 @@ public class JwtInterceptor implements HandlerInterceptor {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private UserMapper userMapper;
+
     // Spring Boot 已按 application.yaml 的 jackson 配置装配好这个单例 Bean，注入即复用同一套序列化规则
     @Autowired
     private ObjectMapper objectMapper;
@@ -32,19 +37,38 @@ public class JwtInterceptor implements HandlerInterceptor {
             writeError(response, 401, "未登录：请在 Authorization 请求头中携带 Bearer <token>");
             return false;
         }
+        Long userId;
         Integer role;
         try {
             Claims claims = jwtUtil.parse(header.substring(7));
-            // 把身份挂到 request 上，后面的接口和角色校验直接取，不用再解析
-            request.setAttribute("userId", Long.valueOf(claims.getSubject()));
+            userId = Long.valueOf(claims.getSubject());
             role = claims.get("role", Integer.class);
-            request.setAttribute("role", role);
         } catch (Exception e) {
             // 只记异常摘要，不记 token 本身
             log.warn("token 校验失败: {} {} - {}", request.getMethod(), request.getRequestURI(), e.getMessage());
             writeError(response, 401, "登录状态无效或已过期，请重新登录");
             return false;
         }
+
+        // 验签通过只说明"这串 token 是我们签的"，不代表"这个账号现在还能用"。
+        // 禁用/删除都发生在签发之后，只有回查一次库才看得见。
+        // 注意此处刻意放在 try 之外：数据库故障抛出的 DataAccessException 应走全局异常处理的 500，
+        // 若被上面那个 catch 吃掉，就会误报成"登录失效"，用户重登多少次都没用。
+        User dbUser = userMapper.selectById(userId);
+        if (dbUser == null) {
+            log.warn("token 指向的账号不存在: userId={} {} {}", userId, request.getMethod(), request.getRequestURI());
+            writeError(response, 401, "账号不存在，请重新登录");
+            return false;
+        }
+        if (!Integer.valueOf(1).equals(dbUser.getStatus())) {
+            log.warn("禁用账号持旧 token 访问: userId={} {} {}", userId, request.getMethod(), request.getRequestURI());
+            writeError(response, 401, "账号已被禁用，请联系管理员");
+            return false;
+        }
+
+        // 身份校验全部通过后才挂到 request 上，后面的接口与角色校验直接取
+        request.setAttribute("userId", userId);
+        request.setAttribute("role", role);
         // 已认证，再判断授权，角色权限不对返回 403
         if (!checkRole(request, role)) {
             log.warn("权限不足: {} {} role={}", request.getMethod(), request.getRequestURI(), role);
