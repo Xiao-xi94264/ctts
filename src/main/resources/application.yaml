@@ -6,7 +6,9 @@ spring:
     name: ctts
 
   datasource:
-    url: jdbc:mysql://localhost:3306/ctts?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    # characterEncoding 取的是 Java 字符集名（UTF-8），不是 MySQL 的 utf8mb4
+    # Connector/J 8.x 会把 UTF-8 协商成 utf8mb4；connectionCollation 显式锁定排序规则
+    url: jdbc:mysql://localhost:3306/ctts?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_general_ci&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
     password: 111
