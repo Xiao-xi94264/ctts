@@ -49,8 +49,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public User update(Long id, User user) {
         user.setId(id);
+        // 所有可更新字段都没传 → <set> 会生成空的 SET，SQL 语法错误，必须在这里拦住
+        if (user.getUsername() == null && user.getRealName() == null && user.getRole() == null) {
+            throw new BusinessException(400, "没有需要更新的字段");
+        }
         userMapper.update(user);
-        return user;
+        // 回查拿数据库真实状态；selectById 不查 password 列，返回对象天然不含哈希
+        return userMapper.selectById(id);
     }
 
     @Override

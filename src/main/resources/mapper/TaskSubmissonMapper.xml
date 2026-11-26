@@ -6,12 +6,14 @@
         VALUES (#{taskId}, #{userId}, #{content}, #{fileUrl})
     </insert>
 
+    <!-- 部分更新：只写传了值的列。task_id / user_id 有意不放进来——交的哪个任务、谁交的，均不可改。
+         updateStatus 是评审事务专用的单独语句，不在此列 -->
     <update id="update">
         UPDATE task_submission
-        SET task_id  = #{taskId},
-            user_id  = #{userId},
-            content  = #{content},
-            file_url = #{fileUrl}
+        <set>
+            <if test="content != null">content = #{content},</if>
+            <if test="fileUrl != null">file_url = #{fileUrl},</if>
+        </set>
         WHERE id = #{id}
     </update>
     

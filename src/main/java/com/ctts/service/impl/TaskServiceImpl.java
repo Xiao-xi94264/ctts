@@ -1,5 +1,6 @@
 package com.ctts.service.impl;
 
+import com.ctts.common.BusinessException;
 import com.ctts.enity.Task;
 import com.ctts.mapper.TaskMapper;
 import com.ctts.service.TaskService;
@@ -33,8 +34,14 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public Task update(Long id, Task task) {
         task.setId(id);
+        // 所有可更新字段都没传 → <set> 会生成空的 SET，SQL 语法错误，必须在这里拦住
+        if (task.getTitle() == null && task.getDescription() == null
+                && task.getDeadline() == null && task.getTotalScore() == null) {
+            throw new BusinessException(400, "没有需要更新的字段");
+        }
         taskMapper.update(task);
-        return task;
+        // 部分更新后入参不完整，回查数据库拿真实状态返回
+        return taskMapper.selectById(id);
     }
 
     @Override

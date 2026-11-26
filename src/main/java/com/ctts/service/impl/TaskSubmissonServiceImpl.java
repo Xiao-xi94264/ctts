@@ -1,5 +1,6 @@
 package com.ctts.service.impl;
 
+import com.ctts.common.BusinessException;
 import com.ctts.enity.TaskSubmission;
 import com.ctts.mapper.TaskSubmissionMapper;
 import com.ctts.service.TaskSubmissionService;
@@ -33,9 +34,14 @@ public class TaskSubmissonServiceImpl implements TaskSubmissionService {
 
     @Override
     public TaskSubmission update(Long id, TaskSubmission submission) {
-         submission.setId(id);
-         taskSubmissionMapper.update(submission);
-         return taskSubmissionMapper.selectById(id);
+        submission.setId(id);
+        // 所有可更新字段都没传 → <set> 会生成空的 SET，SQL 语法错误，必须在这里拦住
+        if (submission.getContent() == null && submission.getFileUrl() == null) {
+            throw new BusinessException(400, "没有需要更新的字段");
+        }
+        taskSubmissionMapper.update(submission);
+        // 部分更新后入参不完整，回查数据库拿真实状态返回
+        return taskSubmissionMapper.selectById(id);
     }
 
     @Override

@@ -18,11 +18,14 @@
         VALUES (#{username}, #{password}, #{realName}, #{role})
     </insert>
 
+    <!-- 部分更新：只写传了值的列。password 不在其中——改密码应走独立接口（验证旧密码后写入新哈希） -->
     <update id="update">
         UPDATE sys_user
-        SET username  = #{username},
-            real_name = #{realName},
-            role      = #{role}
+        <set>
+            <if test="username != null">username = #{username},</if>
+            <if test="realName != null">real_name = #{realName},</if>
+            <if test="role != null">role = #{role},</if>
+        </set>
         WHERE id = #{id}
     </update>
 

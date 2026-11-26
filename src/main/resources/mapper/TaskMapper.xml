@@ -6,13 +6,15 @@
         VALUES (#{projectId}, #{title}, #{description}, #{deadline}, #{totalScore})
     </insert>
 
+    <!-- 部分更新：只写传了值的列。project_id 有意不放进来——任务归属项目在创建时定死，不可改 -->
     <update id="update">
         UPDATE task
-        SET project_id  = #{projectId},
-            title       = #{title},
-            description = #{description},
-            deadline    = #{deadline},
-            total_score = #{totalScore}
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="deadline != null">deadline = #{deadline},</if>
+            <if test="totalScore != null">total_score = #{totalScore},</if>
+        </set>
         WHERE id = #{id}
     </update>
 
