@@ -1,6 +1,7 @@
 package com.ctts.service.impl;
 
 
+import com.ctts.common.BusinessException;
 import com.ctts.enity.TaskReview;
 import com.ctts.mapper.TaskReviewMapper;
 import com.ctts.mapper.TaskSubmissionMapper;
@@ -48,8 +49,19 @@ public class TaskReviewServiceImpl implements TaskReviewService {
         return taskReviewMapper.selectById(id);
     }
 
+    @Transactional
     @Override
     public void delete(Long id) {
+        // 必须先查后删：删掉之后就再也拿不到 submissionId，无法回退状态
+        TaskReview taskReview = taskReviewMapper.selectById(id);
+        if (taskReview == null) {
+            // 不判 null 的话 updateStatus(null, 1) 会静默影响 0 行，什么错都不报
+            throw new BusinessException(404, "评审记录不存在");
+        }
         taskReviewMapper.delete(id);
+        // 状态回退到 1（待评审），status 只有 1/2 两个值。
+        // 注意这里传的是 submissionId 而不是 review 的 id ——
+        // updateStatus 的 WHERE 条件是 task_submission.id，传错主键会改到别人的提交
+        taskSubmissionMapper.updateStatus(taskReview.getSubmissionId(), 1);
     }
 }
