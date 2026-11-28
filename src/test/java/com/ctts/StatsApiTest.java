@@ -1,11 +1,13 @@
 package com.ctts;
 
 import com.ctts.entity.Project;
+import com.ctts.entity.ProjectMember;
 import com.ctts.entity.Task;
 import com.ctts.entity.TaskReview;
 import com.ctts.entity.TaskSubmission;
 import com.ctts.entity.User;
 import com.ctts.mapper.ProjectMapper;
+import com.ctts.mapper.ProjectMemberMapper;
 import com.ctts.mapper.TaskMapper;
 import com.ctts.mapper.TaskReviewMapper;
 import com.ctts.mapper.TaskSubmissionMapper;
@@ -60,6 +62,8 @@ class StatsApiTest {
     @Autowired
     private TaskReviewMapper taskReviewMapper;
     @Autowired
+    private ProjectMemberMapper projectMemberMapper;
+    @Autowired
     private JwtUtil jwtUtil;
     @Autowired
     private ObjectMapper objectMapper;
@@ -77,6 +81,13 @@ class StatsApiTest {
         studentId = 新建用户("zz_st_student", 1);
 
         projectId = 新建项目("统计测试项目");
+
+        // 两个成员：一个交了 3 条提交，另一个一条都没交。
+        // 后者是必需的角色——只统计"交过的人"，分母会永远等于分子，提交率恒为 100%
+        Long passiveStudentId = 新建用户("zz_st_student2", 1);
+        新建成员(projectId, studentId);
+        新建成员(projectId, passiveStudentId);
+
         Long taskA = 新建任务(projectId, "任务A");
         Long taskB = 新建任务(projectId, "任务B");
 
@@ -114,6 +125,41 @@ class StatsApiTest {
         assertEquals(0, item.get("submissionCount").asInt());
         assertEquals(0, item.get("reviewedCount").asInt());
         assertTrue(item.get("avgScore").isNull(), "没有评审时平均分应为 null，0 分会与\"真的得了 0 分\"混淆");
+    }
+
+    @Test
+    @DisplayName("提交「条数」与「份数」是两个数：3 条提交只对应 2 份")
+    void submissionCountAndPairCountDiffer() throws Exception {
+        JsonNode item = 取统计项(projectId);
+
+        // 造数：任务A 交了两条（同一学生重复交），任务B 交了一条
+        assertEquals(3, item.get("submissionCount").asInt(), "条数按记录算，重复提交各算一条");
+        assertEquals(2, item.get("submittedPairCount").asInt(),
+                "份数按 (任务,学生) 去重：任务A重复的两次合成一份，共 2 份。"
+                        + "若这里也是 3，说明少了 DISTINCT，提交率会被重复提交抬高");
+    }
+
+    @Test
+    @DisplayName("提交率的分母是「成员数 × 任务数」，没交的人也要算进分母")
+    void submitRateUsesMemberCountAsDenominator() throws Exception {
+        JsonNode item = 取统计项(projectId);
+
+        // 2 个成员（其中一个一条没交）× 2 个任务 = 应交 4 份，实交 2 份
+        assertEquals(2, item.get("memberCount").asInt(), "成员数应含未提交的那个学生");
+        assertEquals(4, item.get("expectedCount").asInt(), "应交份数 = 2 人 × 2 任务");
+        assertEquals(0.5, item.get("submitRate").asDouble(), 0.0001,
+                "2/4 = 0.5。若分母只数\"交过的人\"，这里会算成 1.0，提交率永远好看");
+    }
+
+    @Test
+    @DisplayName("没有成员的项目：应交 0 份，提交率为 null 而不是 0")
+    void emptyProjectHasNullSubmitRate() throws Exception {
+        JsonNode item = 取统计项(emptyProjectId);
+
+        assertEquals(0, item.get("memberCount").asInt());
+        assertEquals(0, item.get("expectedCount").asInt());
+        assertTrue(item.get("submitRate").isNull(),
+                "分母为 0 时提交率应为 null——没有成员的项目报\"0%\"是误导，它没有这个属性");
     }
 
     @Test
@@ -164,6 +210,13 @@ class StatsApiTest {
         p.setEndDate(LocalDate.of(2026, 12, 31));
         projectMapper.insert(p);
         return p.getId();
+    }
+
+    private void 新建成员(Long pid, Long uid) {
+        ProjectMember m = new ProjectMember();
+        m.setProjectId(pid);
+        m.setUserId(uid);
+        projectMemberMapper.insert(m);
     }
 
     private Long 新建任务(Long pid, String title) {

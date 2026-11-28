@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ctts.mapper.ProjectMemberMapper">
+
+    <!-- join_time 由 DEFAULT CURRENT_TIMESTAMP 生成，不出现在 INSERT 列表里。
+         这一点必须和"显式写 null"区分开：真写 null 会撞 NOT NULL（errno 1048），
+         而不写这一列才会让数据库默认值生效。 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO project_member (project_id, user_id)
+        VALUES (#{projectId}, #{userId})
+    </insert>
+
+    <select id="selectByProjectId" resultType="com.ctts.entity.ProjectMember">
+        SELECT id, project_id, user_id, join_time
+        FROM project_member
+        WHERE project_id = #{projectId}
+        ORDER BY id
+    </select>
+
+    <delete id="deleteByProjectAndUser">
+        DELETE FROM project_member
+        WHERE project_id = #{projectId}
+          AND user_id = #{userId}
+    </delete>
+
+</mapper>

@@ -5,12 +5,23 @@
          1. LEFT JOIN 保留"零任务的项目"，INNER JOIN 会让它整行消失
          2. COUNT(具体列) 而不是 COUNT(*)，否则零任务的项目会显示 1（左表那行还在）
          3. 上游表必须 COUNT(DISTINCT ...)：JOIN 会把上游行按下游记录数复制，
-            例如 2 个任务配 3 条提交，COUNT(t.id) 会得到 3 而不是 2 -->
+            例如 2 个任务配 3 条提交，COUNT(t.id) 会得到 3 而不是 2
+
+         关于 member_count 为什么写成子查询，而不是再加一个 LEFT JOIN：
+         project_member 和 task 是两条并列分支，同时 JOIN 会产生 m行 × t行 的笛卡尔积。
+         COUNT(DISTINCT ...) 全都扛得住，唯独 AVG 扛不住——AVG 无法去重，
+         一旦将来一个提交对应多条评审（不同分数），行放大就会直接算错平均分。
+         用标量子查询把这个隐患从根上消掉，比事后靠 DISTINCT 补更可靠。
+
+         submitted_pair_count 是"份数"：同一学生对同一任务提交多次只算一份。
+         它是提交率的分子，用条数会让提交率超过 100%。 -->
     <select id="statsByProject" resultType="com.ctts.vo.ProjectStatsVO">
         SELECT p.id                   AS project_id,
                p.title                AS project_title,
                COUNT(DISTINCT t.id)   AS task_count,
+               (SELECT COUNT(*) FROM project_member m WHERE m.project_id = p.id) AS member_count,
                COUNT(DISTINCT s.id)   AS submission_count,
+               COUNT(DISTINCT s.task_id, s.user_id) AS submitted_pair_count,
                COUNT(DISTINCT r.id)   AS reviewed_count,
                ROUND(AVG(r.score), 1) AS avg_score
         FROM training_project p

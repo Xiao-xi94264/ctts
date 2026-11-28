@@ -43,7 +43,9 @@ public class TaskReviewController {
     //新增评审：评审人只认 token，请求体里的 reviewerId 一律忽略
     //并且只能评审自己项目下的提交（Service 里顺着 提交→任务→项目 校验归属）
     @Operation(summary = "新增评审",
-            description = "reviewerId 只认 token；只能评自己项目下的提交（否则 403）；评分后提交状态联动改为 2（已评审）")
+            description = "reviewerId 只认 token；只能评自己项目下的提交（否则 403）；"
+                    + "一个提交只能评一次，重复评审返回 400（改分请用 PUT /reviews/{id}）；"
+                    + "评分后提交状态联动改为 2（已评审）")
     @PostMapping
     public Result<TaskReview> add(@RequestBody TaskReview review,
                                   @RequestAttribute("userId") Long userId) {

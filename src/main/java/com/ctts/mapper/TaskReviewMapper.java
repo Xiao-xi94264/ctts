@@ -21,6 +21,10 @@ public interface TaskReviewMapper {
     //根据id查询评审
     TaskReview selectById(Long id);
 
+    //按提交查评审。返回单个对象而不是 List —— 因为 uk_review_submission
+    //保证"一个提交至多一条评审"，类型本身就把这条约束说了出来（返回 List 会暗示可以有多条）
+    TaskReview selectBySubmissionId(@Param("submissionId") Long submissionId);
+
     //学生视角：只看自己提交收到的评审（评审 → 提交 → user_id）
     List<TaskReview> selectByStudent(@Param("userId") Long userId,
                                      @Param("submissionId") Long submissionId);

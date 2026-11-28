@@ -82,6 +82,16 @@ public class TaskReviewServiceImpl implements TaskReviewService {
             throw new BusinessException(403, "只能评审自己项目下的提交");
         }
 
+        // 一个提交只评一次。两层都要有，但职责不同：
+        // 这一层给的是能读懂的提示（"已有评审，改分请走 PUT"）；
+        // 数据库 uk_review_submission 那一层防的是并发——两个请求同时通过上面的判空，
+        // 只有一个能插入成功，另一个撞唯一索引落成 400，绝不会出现两条互相矛盾的评分。
+        TaskReview reviewed = taskReviewMapper.selectBySubmissionId(taskReview.getSubmissionId());
+        if (reviewed != null) {
+            throw new BusinessException(400,
+                    "该提交已有评审（id=" + reviewed.getId() + "），修改评分请调用 PUT /reviews/" + reviewed.getId());
+        }
+
         taskReviewMapper.insert(taskReview);
         // review_time 由数据库默认值生成，不回填 Java 对象，回查一次拿完整数据
         //更改评审状态

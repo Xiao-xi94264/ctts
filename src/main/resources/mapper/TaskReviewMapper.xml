@@ -30,6 +30,14 @@
         WHERE r.id = #{id}
     </select>
 
+    <!-- uk_review_submission 保证一个提交至多一条评审，所以这里用单对象返回：
+         返回类型就是约束的书面表达，看签名就知道不可能拿到多条 -->
+    <select id="selectBySubmissionId" resultType="com.ctts.entity.TaskReview">
+        SELECT <include refid="baseColumns"/>
+        FROM task_review r
+        WHERE r.submission_id = #{submissionId}
+    </select>
+
     <!-- 管理员视角：两个参数都可为 null；都不传时 <where> 内部无内容，SQL 退化为查全表 -->
     <select id="selectByCondition" resultType="com.ctts.entity.TaskReview">
         SELECT <include refid="baseColumns"/>
