@@ -55,7 +55,7 @@ public class TaskController {
     }
 
     //删除指定id任务：同样只允许删自己项目下的
-    @Operation(summary = "删除任务", description = "只能删自己项目下的，否则 403；任务下仍有提交时 400（外键）")
+    @Operation(summary = "删除任务", description = "只能删自己项目下的，否则 403；任务下仍有提交时 400（Service 计数守卫，不是外键）")
     @RequireRole({2})
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id, @RequestAttribute("userId") Long userId) {

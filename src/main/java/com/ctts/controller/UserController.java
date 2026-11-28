@@ -70,7 +70,7 @@ public class UserController {
     }
 
     // 删除指定id用户
-    @Operation(summary = "删除用户", description = "物理删除；仍被项目/提交引用时 400（外键 errno 1451）")
+    @Operation(summary = "删除用户", description = "逻辑删除（deleted 置为自身 id），记录仍在库中；不检查、也不级联其项目与提交，故可能留下指向已删教师的项目")
     @RequireRole({3})
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {

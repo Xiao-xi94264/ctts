@@ -1,5 +1,12 @@
 server:
   port: 8080
+  servlet:
+    # 统一前缀 /api（D1 决策，2026-11-28）。放在 context-path 而不是逐个 Controller 的
+    # @RequestMapping：前缀是"部署属性"，不是业务属性。
+    # 三个连带影响：① 所有外部地址变为 http://localhost:8080/api/xxx；
+    # ② doc.html 变 /api/doc.html（WebConfig 里的白名单写的是应用内路径，不用改）；
+    # ③ MockMvc 测试不受影响——它绕过 Servlet 容器映射，get("/users") 仍然匹配。
+    context-path: /api
 
 spring:
   application:

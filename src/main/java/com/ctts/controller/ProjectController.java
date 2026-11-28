@@ -58,7 +58,7 @@ public class ProjectController {
     }
 
     //删除指定id项目：同样只允许删自己的
-    @Operation(summary = "删除项目", description = "只能删自己的，否则 403；项目下仍有任务时 400（外键）")
+    @Operation(summary = "删除项目", description = "只能删自己的，否则 403；项目下仍有任务时 400（Service 计数守卫，不是外键）")
     @RequireRole({2})
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id, @RequestAttribute("userId") Long userId) {

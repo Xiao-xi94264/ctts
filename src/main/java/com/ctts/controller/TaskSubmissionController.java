@@ -61,7 +61,7 @@ public class TaskSubmissionController {
     }
 
     //删除提交：同样只允许删自己的
-    @Operation(summary = "删除提交", description = "只能删自己的，否则 403")
+    @Operation(summary = "删除提交", description = "只能删自己的，否则 403；同事务级联逻辑删除其评审，不返回 400")
     @RequireRole({1})
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id, @RequestAttribute("userId") Long userId) {
