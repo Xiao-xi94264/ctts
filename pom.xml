@@ -90,6 +90,18 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- 接口文档：Knife4j（OpenAPI 3 + Swagger UI 的国产增强版）
+             必须是 jakarta 版、4.x：项目是 Spring Boot 3.3.5 + Java 17，
+             3.x 及以下的 starter 基于 javax.servlet，装上去启动就报 ClassNotFound。
+             它传递依赖 springdoc-openapi-starter-webmvc-ui 2.3.0（见 knife4j 父 pom 的
+             knife4j-springdoc-openapi-jakarta.version），而 Boot 3.3 官方配套是 springdoc 2.6.x。
+             先不加显式覆盖，用 dependency:tree + 启动结果判断是否真的需要抬版本 -->
+        <dependency>
+            <groupId>com.github.xiaoymin</groupId>
+            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+            <version>4.5.0</version>
+        </dependency>
+
 
     </dependencies>
 

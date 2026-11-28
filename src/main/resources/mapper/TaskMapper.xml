@@ -24,7 +24,7 @@
         WHERE id = #{id}
     </delete>
 
-    <select id="selectById" resultType="com.ctts.enity.Task">
+    <select id="selectById" resultType="com.ctts.entity.Task">
         SELECT id,
                project_id,
                title,
@@ -37,7 +37,7 @@
         WHERE id = #{id}
     </select>
 
-    <select id="selectByCondition" resultType="com.ctts.enity.Task">
+    <select id="selectByCondition" resultType="com.ctts.entity.Task">
     SELECT id,
     project_id,
     title,
@@ -56,7 +56,7 @@
 
 </select>
 
-    <select id="selectByPage" resultType="com.ctts.enity.Task">
+    <select id="selectByPage" resultType="com.ctts.entity.Task">
         SELECT id,
         project_id,
         title,
@@ -73,6 +73,19 @@
             </if>
         </where>
         LIMIT #{offset},#{pageSize}
+
+    </select>
+
+    <!-- 与 selectByPage 的 <where> 必须逐字一致：两处条件不同，total 就会与 list 对不上 -->
+    <select id="selectCount" resultType="long">
+        SELECT COUNT(*)
+        FROM task
+
+        <where>
+            <if test="projectId != null">
+                AND project_id = #{projectId}
+            </if>
+        </where>
 
     </select>
 

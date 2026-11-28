@@ -26,7 +26,7 @@
         where id = #{id}
     </delete>
 
-    <select id="selectById" resultType="com.ctts.enity.Project">
+    <select id="selectById" resultType="com.ctts.entity.Project">
         SELECT id,
                title,
                description,
@@ -40,7 +40,7 @@
         WHERE id = #{id}
     </select>
 
-    <select id="selectAll" resultType="com.ctts.enity.Project">
+    <select id="selectAll" resultType="com.ctts.entity.Project">
         SELECT id,
                title,
                description,

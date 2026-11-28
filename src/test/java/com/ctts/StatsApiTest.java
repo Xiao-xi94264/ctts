@@ -1,10 +1,10 @@
 package com.ctts;
 
-import com.ctts.enity.Project;
-import com.ctts.enity.Task;
-import com.ctts.enity.TaskReview;
-import com.ctts.enity.TaskSubmission;
-import com.ctts.enity.User;
+import com.ctts.entity.Project;
+import com.ctts.entity.Task;
+import com.ctts.entity.TaskReview;
+import com.ctts.entity.TaskSubmission;
+import com.ctts.entity.User;
 import com.ctts.mapper.ProjectMapper;
 import com.ctts.mapper.TaskMapper;
 import com.ctts.mapper.TaskReviewMapper;

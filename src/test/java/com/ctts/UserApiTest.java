@@ -1,6 +1,6 @@
 package com.ctts;
 
-import com.ctts.enity.User;
+import com.ctts.entity.User;
 import com.ctts.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

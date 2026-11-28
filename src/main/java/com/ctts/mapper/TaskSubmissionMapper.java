@@ -1,6 +1,6 @@
 package com.ctts.mapper;
 
-import com.ctts.enity.TaskSubmission;
+import com.ctts.entity.TaskSubmission;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,11 +14,17 @@ public interface TaskSubmissionMapper {
     int delete(Long id);
     //更改提交
     int update(TaskSubmission taskSubmission);
-    //查询全部提交
+    //查询全部提交（仅管理员视角使用）
     List<TaskSubmission> selectAll();
-    //根据id查询全部提交
+    //根据id查询提交
     TaskSubmission selectById(Long id);
     //修改评审状态
     int updateStatus(@Param("id")Long id,@Param("status")Integer status);
 
+    //学生视角：只查自己交的
+    List<TaskSubmission> selectByUserId(@Param("userId") Long userId);
+    //教师视角：只查自己项目下的（提交 → 任务 → 项目 → teacher_id）
+    List<TaskSubmission> selectByTeacherId(@Param("teacherId") Long teacherId);
+    //查某条提交所属项目的负责教师，用于"只能评审自己项目下的提交"这条校验
+    Long selectProjectTeacherId(@Param("submissionId") Long submissionId);
 }

@@ -1,11 +1,11 @@
 package com.ctts;
 
 import com.ctts.common.BusinessException;
-import com.ctts.enity.Project;
-import com.ctts.enity.Task;
-import com.ctts.enity.TaskReview;
-import com.ctts.enity.TaskSubmission;
-import com.ctts.enity.User;
+import com.ctts.entity.Project;
+import com.ctts.entity.Task;
+import com.ctts.entity.TaskReview;
+import com.ctts.entity.TaskSubmission;
+import com.ctts.entity.User;
 import com.ctts.mapper.ProjectMapper;
 import com.ctts.mapper.TaskMapper;
 import com.ctts.mapper.TaskReviewMapper;
@@ -129,7 +129,7 @@ class ReviewTransactionTest {
         TaskReview saved = 新增评审();
         assertEquals(已评审, submissionStatus(), "前置条件：提交应为已评审");
 
-        taskReviewService.delete(saved.getId());
+        taskReviewService.delete(saved.getId(), teacherId);
 
         // 关键断言一：状态回退到 1，而不是 0 或保持 2
         assertEquals(待评审, submissionStatus(), "删除评审后提交状态应回退为待评审");
@@ -148,7 +148,7 @@ class ReviewTransactionTest {
         taskSubmissionMapper.insert(other);
 
         TaskReview saved = 新增评审();
-        taskReviewService.delete(saved.getId());
+        taskReviewService.delete(saved.getId(), teacherId);
 
         assertEquals(待评审, submissionStatus(), "被评审的提交应回退为待评审");
         assertEquals(待评审, taskSubmissionMapper.selectById(other.getId()).getStatus(),
@@ -159,7 +159,7 @@ class ReviewTransactionTest {
     @DisplayName("删除不存在的评审 → 抛 404 业务异常，不静默成功")
     void deleteUnknownReviewThrows404() {
         BusinessException ex = assertThrows(BusinessException.class,
-                () -> taskReviewService.delete(999_999L),
+                () -> taskReviewService.delete(999_999L, teacherId),
                 "删除不存在的评审应抛业务异常，而不是静默返回");
         assertEquals(404, ex.getCode().intValue(), "错误码应为 404");
     }

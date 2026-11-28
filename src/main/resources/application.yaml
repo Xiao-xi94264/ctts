@@ -14,6 +14,9 @@ spring:
     password: 111
 
   jackson:
+    # 注意：这一项只对 java.util.Date 生效，对 LocalDateTime/LocalDate 无效。
+    # java.time 的格式由 com.ctts.config.JacksonConfig 统一接管（类型级序列化器）。
+    # 项目已无 java.util.Date 字段，这两行留着是为了以后引入 Date 时行为可预期。
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
 

@@ -1,4 +1,4 @@
-package com.ctts.enity;
+package com.ctts.entity;
 
 import com.ctts.common.ValidationGroups;
 import jakarta.validation.constraints.NotBlank;

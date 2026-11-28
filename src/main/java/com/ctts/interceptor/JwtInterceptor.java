@@ -1,7 +1,7 @@
 package com.ctts.interceptor;
 
 import com.ctts.common.Result;
-import com.ctts.enity.User;
+import com.ctts.entity.User;
 import com.ctts.mapper.UserMapper;
 import com.ctts.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.io.IOException;
+import java.util.Objects;
 
 @Slf4j
 @Component
@@ -66,12 +67,25 @@ public class JwtInterceptor implements HandlerInterceptor {
             return false;
         }
 
+        // 角色同样会在签发后被改。token 里的 role 是签发那一刻的快照，验签只证明
+        // "这串 token 是我们签的"，证明不了"它自称的角色现在还对"。
+        // 不一致就作废这张凭证：让前端重新登录去换一张新的，而不是拿旧身份继续用。
+        Integer dbRole = dbUser.getRole();
+        if (!Objects.equals(dbRole, role)) {
+            log.warn("账号角色已变更，旧 token 作废: userId={} tokenRole={} dbRole={} {} {}",
+                    userId, role, dbRole, request.getMethod(), request.getRequestURI());
+            writeError(response, 401, "账号权限已变更，请重新登录");
+            return false;
+        }
+
         // 身份校验全部通过后才挂到 request 上，后面的接口与角色校验直接取
         request.setAttribute("userId", userId);
-        request.setAttribute("role", role);
+        // 授权依据取库里的角色而不是 token 里的：走到这里两者必然相等，
+        // 但"以库为准"让角色的唯一真相留在数据库，将来放宽比对逻辑也不会走偏
+        request.setAttribute("role", dbRole);
         // 已认证，再判断授权，角色权限不对返回 403
-        if (!checkRole(request, role)) {
-            log.warn("权限不足: {} {} role={}", request.getMethod(), request.getRequestURI(), role);
+        if (!checkRole(request, dbRole)) {
+            log.warn("权限不足: {} {} role={}", request.getMethod(), request.getRequestURI(), dbRole);
             writeError(response, 403, "权限不足：当前角色不能执行该操作");
             return false;
         }

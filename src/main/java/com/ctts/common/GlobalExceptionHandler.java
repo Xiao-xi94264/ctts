@@ -7,8 +7,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.sql.SQLException;
@@ -61,20 +63,41 @@ public class GlobalExceptionHandler {
         return build(400, "数据约束校验失败");
     }
 
-    // 5. 请求体解析失败：JSON 语法错误、日期格式错误（如 deadline 少了 T）
+    // 5. 请求体解析失败：JSON 语法错误、日期格式错误
+    // 提示语里的日期写法必须与 JacksonConfig 的格式一致，否则等于教用户传错
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Result<Void>> handleNotReadable(HttpMessageNotReadableException e) {
         log.warn("请求体解析失败: {}", e.getMessage());
-        return build(400, "请求体格式错误，请检查 JSON 语法与日期格式（如 2026-03-10T18:00:00）");
+        return build(400, "请求体格式错误，请检查 JSON 语法与日期格式（如 2026-03-10 18:00:00）");
     }
 
-    // 6. 路径不存在：兜底处理器会把 404 变成 500，所以单独接住
+    // 6. 缺少必填的查询参数：本质是客户端少传了东西，落到兜底会变成 500
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Result<Void>> handleMissingParam(MissingServletRequestParameterException e) {
+        log.warn("缺少必填查询参数: {}", e.getParameterName());
+        return build(400, "缺少必填参数 " + e.getParameterName());
+    }
+
+    // 7. 查询参数类型对不上：如 ?submissionId=abc 要转成 Long 会失败。
+    //    这类异常不走 handleValidation，也不走 handleNotReadable（后者只管请求体），
+    //    不单独接住就会落到最后的兜底，把"客户端传错"报成"服务器 500"。
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Result<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        Class<?> requiredType = e.getRequiredType();
+        String expected = requiredType == null
+                ? "正确的类型"
+                : (Number.class.isAssignableFrom(requiredType) ? "数字" : requiredType.getSimpleName());
+        log.warn("查询参数类型不匹配: name={}, value={}", e.getName(), e.getValue());
+        return build(400, "参数 " + e.getName() + " 类型不正确，应为" + expected);
+    }
+
+    // 8. 路径不存在：兜底处理器会把 404 变成 500，所以单独接住
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Result<Void>> handleNotFound(NoResourceFoundException e) {
         return build(404, "接口不存在: " + e.getResourcePath());
     }
 
-    // 7. 兜底：未预料的异常，堆栈只进日志，不返回给前端
+    // 9. 兜底：未预料的异常，堆栈只进日志，不返回给前端
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Result<Void>> handleException(Exception e) {
         log.error("未预期异常", e);

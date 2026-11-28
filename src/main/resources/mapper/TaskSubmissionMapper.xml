@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ctts.mapper.TaskSubmissionMapper">
+
+    <!-- 列清单只写一次：四个查询都 <include> 它。
+         分开写四份的直接后果是"D6 那种漏列"——改一处忘三处，
+         查出来的对象某些字段恒为 null，而且编译器不会报任何错 -->
+    <sql id="baseColumns">
+        s.id, s.task_id, s.user_id, s.content, s.file_url, s.submit_time, s.status
+    </sql>
+
+    <insert id="insert" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO task_submission (task_id, user_id, content, file_url)
+        VALUES (#{taskId}, #{userId}, #{content}, #{fileUrl})
+    </insert>
+
+    <!-- 部分更新：只写传了值的列。task_id / user_id 有意不放进来——交的哪个任务、谁交的，均不可改。
+         updateStatus 是评审事务专用的单独语句，不在此列 -->
+    <update id="update">
+        UPDATE task_submission
+        <set>
+            <if test="content != null">content = #{content},</if>
+            <if test="fileUrl != null">file_url = #{fileUrl},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE task_submission
+        SET status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM task_submission
+        WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" resultType="com.ctts.entity.TaskSubmission">
+        SELECT <include refid="baseColumns"/>
+        FROM task_submission s
+        WHERE s.id = #{id}
+    </select>
+
+    <select id="selectAll" resultType="com.ctts.entity.TaskSubmission">
+        SELECT <include refid="baseColumns"/>
+        FROM task_submission s
+    </select>
+
+    <!-- 学生：自己交的 -->
+    <select id="selectByUserId" resultType="com.ctts.entity.TaskSubmission">
+        SELECT <include refid="baseColumns"/>
+        FROM task_submission s
+        WHERE s.user_id = #{userId}
+    </select>
+
+    <!-- 教师：自己项目下的。提交本身没有 teacher_id，
+         只能顺着 task_id → project_id → training_project.teacher_id 查上来 -->
+    <select id="selectByTeacherId" resultType="com.ctts.entity.TaskSubmission">
+        SELECT <include refid="baseColumns"/>
+        FROM task_submission s
+                 JOIN task t ON t.id = s.task_id
+                 JOIN training_project p ON p.id = t.project_id
+        WHERE p.teacher_id = #{teacherId}
+    </select>
+
+    <!-- 返回单个 Long：用于"这条提交归谁的项目管"这类归属校验。
+         查不到时返回 null（提交不存在或链条断开），调用方必须判空 -->
+    <select id="selectProjectTeacherId" resultType="java.lang.Long">
+        SELECT p.teacher_id
+        FROM task_submission s
+                 JOIN task t ON t.id = s.task_id
+                 JOIN training_project p ON p.id = t.project_id
+        WHERE s.id = #{submissionId}
+    </select>
+
+</mapper>

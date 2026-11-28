@@ -1,6 +1,6 @@
 package com.ctts.mapper;
 
-import com.ctts.enity.Project;
+import com.ctts.entity.Project;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;

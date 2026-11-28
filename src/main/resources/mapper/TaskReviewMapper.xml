@@ -2,6 +2,11 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ctts.mapper.TaskReviewMapper">
 
+    <!-- 列清单只写一次，四个查询共用 -->
+    <sql id="baseColumns">
+        r.id, r.submission_id, r.reviewer_id, r.score, r.`comment`, r.review_time
+    </sql>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO task_review (submission_id, reviewer_id, score, `comment`)
         VALUES (#{submissionId}, #{reviewerId}, #{score}, #{comment})
@@ -19,15 +24,53 @@
         WHERE id = #{id}
     </delete>
 
-    <select id="selectById" resultType="com.ctts.enity.TaskReview">
-        SELECT id, submission_id, reviewer_id, score, `comment`, review_time
-        FROM task_review
-        WHERE id = #{id}
+    <select id="selectById" resultType="com.ctts.entity.TaskReview">
+        SELECT <include refid="baseColumns"/>
+        FROM task_review r
+        WHERE r.id = #{id}
     </select>
 
-    <select id="selectAll" resultType="com.ctts.enity.TaskReview">
-        SELECT id, submission_id, reviewer_id, score, `comment`, review_time
-        FROM task_review
+    <!-- 管理员视角：两个参数都可为 null；都不传时 <where> 内部无内容，SQL 退化为查全表 -->
+    <select id="selectByCondition" resultType="com.ctts.entity.TaskReview">
+        SELECT <include refid="baseColumns"/>
+        FROM task_review r
+        <where>
+            <if test="submissionId != null">
+                AND r.submission_id = #{submissionId}
+            </if>
+            <if test="reviewerId != null">
+                AND r.reviewer_id = #{reviewerId}
+            </if>
+        </where>
+    </select>
+
+    <!-- 学生视角：评审表没有 user_id，"这条评审是不是评我的"要顺着
+         submission_id → task_submission.user_id 查一次 -->
+    <select id="selectByStudent" resultType="com.ctts.entity.TaskReview">
+        SELECT <include refid="baseColumns"/>
+        FROM task_review r
+                 JOIN task_submission s ON s.id = r.submission_id
+        <where>
+            AND s.user_id = #{userId}
+            <if test="submissionId != null">
+                AND r.submission_id = #{submissionId}
+            </if>
+        </where>
+    </select>
+
+    <!-- 教师视角：自己写的评审。若调用方又指定了 reviewerId，两个条件取交集 -->
+    <select id="selectByReviewer" resultType="com.ctts.entity.TaskReview">
+        SELECT <include refid="baseColumns"/>
+        FROM task_review r
+        <where>
+            AND r.reviewer_id = #{userId}
+            <if test="submissionId != null">
+                AND r.submission_id = #{submissionId}
+            </if>
+            <if test="reviewerId != null">
+                AND r.reviewer_id = #{reviewerId}
+            </if>
+        </where>
     </select>
 
 </mapper>

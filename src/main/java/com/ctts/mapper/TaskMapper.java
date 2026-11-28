@@ -1,6 +1,6 @@
 package com.ctts.mapper;
 
-import com.ctts.enity.Task;
+import com.ctts.entity.Task;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -30,4 +30,7 @@ public interface TaskMapper {
                             @Param("offset") int offset,
                             @Param("pageSize") int pageSize);
 
+    //统计满足条件的任务总数，供分页算总页数用。
+    //筛选条件必须与 selectByPage 完全一致，否则 total 与 list 会对不上
+    long selectCount(@Param("projectId") Long projectId);
 }

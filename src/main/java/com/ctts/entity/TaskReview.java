@@ -1,6 +1,5 @@
-package com.ctts.enity;
+package com.ctts.entity;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,6 +15,5 @@ public class TaskReview {
     private Long reviewerId;
     private Integer score;
     private String comment;
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime reviewTime;
 }
