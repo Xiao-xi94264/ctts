@@ -147,7 +147,7 @@ class UserCreateValidTest {
         for (String username : new String[]{ADMIN_USERNAME, CREATED_USERNAME}) {
             User u = userMapper.selectByUsername(username);
             if (u != null) {
-                userMapper.delete(u.getId());
+                userMapper.hardDelete(u.getId());
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.ctts.config;
 
+import com.ctts.common.RequireRole;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.responses.ApiResponse;
@@ -33,9 +34,9 @@ import java.util.Arrays;
  *   <li>400：**有客户端输入**的接口（@PathVariable / @RequestParam / @RequestBody）。
  *       没有输入的 {@code GET /projects}、{@code GET /stats/projects} 不可能"输入不合法"，故不出 400</li>
  *   <li>401：除 {@code /users/login} 外都有（验签在拦截器，白名单只有 login 与文档路径）</li>
- *   <li>403：写操作 + {@code /users} 下的读操作 + 提交/评审详情。**这一条是近似**：真正的归属校验
- *       写在各 Service 里（"这是不是你的记录"），反射推断不出来，只能按"该模块有没有可能 403"粗判。
- *       已知的漏网：{@code GET /projects/{id}}、{@code GET /tasks/{id}} 没有归属校验，本就不该有 403——这是对的</li>
+ *   <li>403：{@code @RequireRole} 未放开全部角色、写操作（还要过归属校验）、{@code /users} 下的读、提交/评审详情。
+ *       **角色部分不再是推测**——第㊴步把授权规则抽成 {@code @RequireRole} 注解后，文档与拦截器读同一处注解。
+ *       仍属推测的只剩"记录是不是你的"这一类：它写在各 Service 里，反射看不见，只能按"该模块有没有可能 403"粗判</li>
  *   <li>404：方法参数里有 {@code @PathVariable} 的（带 id 的查/改/删）</li>
  * </ul>
  */
@@ -72,6 +73,9 @@ public class OpenApiConfig {
             boolean hasPathVar = hasPathVariable(method);
             boolean hasInput = hasClientInput(method);
             boolean underUsers = isUnder(handlerMethod, "/users");
+            // 角色受限 = @RequireRole 没有放开全部三种角色。这里直接读注解而不是按路径猜——
+            // 授权规则与文档说明同源，改注解即改文档，不会出现"代码收紧了、文档还写着能调"
+            boolean roleRestricted = isRoleRestricted(handlerMethod);
 
             // 没有客户端输入就不可能有"输入不合法"：GET /projects、GET /stats/projects 无参数，不出 400
             if (hasInput) {
@@ -86,11 +90,12 @@ public class OpenApiConfig {
                         "未携带 token、token 过期、账号被禁用、或角色已变更（需重新登录）");
             }
 
-            // 403 的三种来源：写操作的角色/归属校验；/users 下的读操作（仅管理员）；
-            // 提交与评审的详情（不在可见范围内 403——这是列表"收窄"之外唯一会拒绝的读）
+            // 403 的四条来源：① @RequireRole 未放开全部角色（角色不够）；
+            // ② 写操作（还要过"是不是你的记录"这一关）；③ /users 下的读操作（仅管理员、或查他人）；
+            // ④ 提交/评审详情（不在可见范围内——这是列表"收窄"之外唯一会拒绝的读）
             boolean scopedDetail = !isWrite && hasPathVar
                     && (isUnder(handlerMethod, "/submissions") || isUnder(handlerMethod, "/reviews"));
-            if (!isLogin && (isWrite || underUsers || scopedDetail)) {
+            if (!isLogin && (roleRestricted || isWrite || underUsers || scopedDetail)) {
                 putIfAbsent(responses, "403", "无权限",
                         "当前角色不能执行该操作，或数据不属于当前用户");
             }
@@ -121,6 +126,22 @@ public class OpenApiConfig {
                 p.isAnnotationPresent(PathVariable.class)
                         || p.isAnnotationPresent(RequestParam.class)
                         || p.isAnnotationPresent(RequestBody.class));
+    }
+
+    /**
+     * 该接口是否"只对部分角色开放"。规则来自 {@code @RequireRole}，方法上的优先于类上的，
+     * 与 {@code JwtInterceptor.checkRole} 读的是同一处——**授权只有一份真相**，
+     * 文档里显示的 403 因此不会和实际拦截行为脱节。
+     */
+    private static boolean isRoleRestricted(HandlerMethod handlerMethod) {
+        RequireRole rule = handlerMethod.getMethodAnnotation(RequireRole.class);
+        if (rule == null) {
+            rule = handlerMethod.getBeanType().getAnnotation(RequireRole.class);
+        }
+        if (rule == null) {
+            return false;
+        }
+        return Arrays.stream(rule.value()).distinct().count() < 3;
     }
 
     /**

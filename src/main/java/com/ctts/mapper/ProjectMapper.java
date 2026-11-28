@@ -19,7 +19,10 @@ public interface ProjectMapper {
     //修改项目
     int update(Project project);
 
-    //删除项目
-    int delete(Long id);
+    //逻辑删除：deleted 置为本行 id，行还在（历史与统计口径都依赖它）
+    int softDelete(Long id);
+
+    //物理删除：仅供测试清理与运维，业务代码不得调用
+    int hardDelete(Long id);
 
 }

@@ -25,7 +25,7 @@ public interface ProjectMemberMapper {
     ProjectMember selectByProjectAndUser(@Param("projectId") Long projectId,
                                          @Param("userId") Long userId);
 
-    //移出成员：按 (项目, 用户) 定位，不按主键——调用方手里通常没有 id
-    int deleteByProjectAndUser(@Param("projectId") Long projectId,
+    //移出成员：按 (项目, 用户) 定位，不按主键——调用方手里通常没有 id。逻辑删除
+    int softDeleteByProjectAndUser(@Param("projectId") Long projectId,
                                @Param("userId") Long userId);
 }

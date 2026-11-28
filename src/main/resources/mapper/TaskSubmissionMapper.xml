@@ -4,7 +4,8 @@
 
     <!-- 列清单只写一次：四个查询都 <include> 它。
          分开写四份的直接后果是"D6 那种漏列"——改一处忘三处，
-         查出来的对象某些字段恒为 null，而且编译器不会报任何错 -->
+         查出来的对象某些字段恒为 null，而且编译器不会报任何错。
+         注意这里不包含 deleted：实体没有该属性，它是过滤条件不是业务字段 -->
     <sql id="baseColumns">
         s.id, s.task_id, s.user_id, s.content, s.file_url, s.submit_time, s.status
     </sql>
@@ -23,15 +24,29 @@
             <if test="fileUrl != null">file_url = #{fileUrl},</if>
         </set>
         WHERE id = #{id}
+          AND deleted = 0
     </update>
 
+    <!-- 评审新增/删除时回写提交状态。前提是提交还在——已软删的提交不该被"复活"成待评审 -->
     <update id="updateStatus">
         UPDATE task_submission
         SET status = #{status}
         WHERE id = #{id}
+          AND deleted = 0
     </update>
 
-    <delete id="delete">
+    <!-- 逻辑删除。删掉后同一学生可以重新提交同一任务：
+         唯一索引是 (task_id, user_id, deleted)，被删那行占 deleted=id，新行 deleted=0，不冲突。
+         这就是"改完重交"与"同时交两份"能被区分开的原因。 -->
+    <update id="softDelete">
+        UPDATE task_submission
+        SET deleted = id
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+
+    <!-- 物理删除：仅测试清理与运维使用 -->
+    <delete id="hardDelete">
         DELETE FROM task_submission
         WHERE id = #{id}
     </delete>
@@ -40,11 +55,13 @@
         SELECT <include refid="baseColumns"/>
         FROM task_submission s
         WHERE s.id = #{id}
+          AND s.deleted = 0
     </select>
 
     <select id="selectAll" resultType="com.ctts.entity.TaskSubmission">
         SELECT <include refid="baseColumns"/>
         FROM task_submission s
+        WHERE s.deleted = 0
     </select>
 
     <!-- 学生：自己交的 -->
@@ -52,35 +69,51 @@
         SELECT <include refid="baseColumns"/>
         FROM task_submission s
         WHERE s.user_id = #{userId}
+          AND s.deleted = 0
     </select>
 
     <!-- 教师：自己项目下的。提交本身没有 teacher_id，
-         只能顺着 task_id → project_id → training_project.teacher_id 查上来 -->
+         只能顺着 task_id → project_id → training_project.teacher_id 查上来。
+         这里刻意只过滤 s.deleted，不过滤 t/p 的 deleted：删除规则保证了
+         "项目下有任务就不能删项目、任务下有提交就不能删任务"，
+         所以不会出现"父已删、子还在"的孤儿；真需要级联过滤时再补，不要提前加无用的条件。 -->
     <select id="selectByTeacherId" resultType="com.ctts.entity.TaskSubmission">
         SELECT <include refid="baseColumns"/>
         FROM task_submission s
                  JOIN task t ON t.id = s.task_id
                  JOIN training_project p ON p.id = t.project_id
         WHERE p.teacher_id = #{teacherId}
+          AND s.deleted = 0
     </select>
 
     <!-- 返回单个 Long：用于"这条提交归谁的项目管"这类归属校验。
-         查不到时返回 null（提交不存在或链条断开），调用方必须判空 -->
+         查不到时返回 null（提交不存在或已删除），调用方必须判空 -->
     <select id="selectProjectTeacherId" resultType="java.lang.Long">
         SELECT p.teacher_id
         FROM task_submission s
                  JOIN task t ON t.id = s.task_id
                  JOIN training_project p ON p.id = t.project_id
         WHERE s.id = #{submissionId}
+          AND s.deleted = 0
     </select>
 
     <!-- 一个学生对同一任务只交一份。返回单个对象而不是 List：
-         调用方只关心"有没有、是哪一条"，用 List 会让人误以为存在多条。 -->
+         调用方只关心"有没有、是哪一条"，用 List 会让人误以为存在多条。
+         已删除的那条查不到 → 判重逻辑自动允许重新提交 -->
     <select id="selectByTaskAndUser" resultType="com.ctts.entity.TaskSubmission">
         SELECT <include refid="baseColumns"/>
         FROM task_submission s
         WHERE s.task_id = #{taskId}
           AND s.user_id = #{userId}
+          AND s.deleted = 0
+    </select>
+
+    <!-- 删除任务前的守卫。带 deleted = 0：已删的提交不该阻止删任务 -->
+    <select id="countByTaskId" resultType="long">
+        SELECT COUNT(*)
+        FROM task_submission s
+        WHERE s.task_id = #{taskId}
+          AND s.deleted = 0
     </select>
 
 </mapper>

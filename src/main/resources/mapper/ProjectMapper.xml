@@ -18,12 +18,24 @@
             <if test="endDate != null">end_date = #{endDate},</if>
         </set>
         WHERE id = #{id}
+          AND deleted = 0
     </update>
 
-    <delete id="delete">
+    <!-- 逻辑删除：deleted 写本行 id，行本身留下。
+         好处是"删项目"不再撞外键（task.project_id 还指向它），也不必级联删任务；
+         代价是所有读取都要自己带 deleted = 0，见本文件各 select 与 StatsMapper。 -->
+    <update id="softDelete">
+        UPDATE training_project
+        SET deleted = id
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+
+    <!-- 物理删除：仅测试清理与运维使用 -->
+    <delete id="hardDelete">
         DELETE
         FROM training_project
-        where id = #{id}
+        WHERE id = #{id}
     </delete>
 
     <select id="selectById" resultType="com.ctts.entity.Project">
@@ -38,6 +50,7 @@
                update_time
         FROM training_project
         WHERE id = #{id}
+          AND deleted = 0
     </select>
 
     <select id="selectAll" resultType="com.ctts.entity.Project">
@@ -51,6 +64,7 @@
                create_time,
                update_time
         FROM training_project
+        WHERE deleted = 0
     </select>
 
 

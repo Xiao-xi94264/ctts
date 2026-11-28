@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ctts.mapper.TaskReviewMapper">
 
-    <!-- 列清单只写一次，四个查询共用 -->
+    <!-- 列清单只写一次，四个查询共用。deleted 是过滤条件，不进列清单 -->
     <sql id="baseColumns">
         r.id, r.submission_id, r.reviewer_id, r.score, r.`comment`, r.review_time
     </sql>
@@ -17,32 +17,57 @@
         SET score   = #{score},
             `comment` = #{comment}
         WHERE id = #{id}
+          AND deleted = 0
     </update>
 
-    <delete id="delete">
+    <!-- 逻辑删除。删掉后：
+         ① 该提交的唯一索引位置被释放（(submission_id, deleted) 里被删行占 deleted=id），可以重新评审；
+         ② selectBySubmissionId 查不到 → POST /reviews 的判重自动放行。
+         Service 还会在同一事务里把提交状态回退成 1（待评审），两件事必须同生共死。 -->
+    <update id="softDelete">
+        UPDATE task_review
+        SET deleted = id
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+
+    <!-- 物理删除：仅测试清理与运维使用 -->
+    <delete id="hardDelete">
         DELETE FROM task_review
         WHERE id = #{id}
     </delete>
+
+    <!-- 级联逻辑删除：删提交时一并标记它的评审。按 submission_id 批量，不用循环单条 -->
+    <update id="softDeleteBySubmissionId">
+        UPDATE task_review
+        SET deleted = id
+        WHERE submission_id = #{submissionId}
+          AND deleted = 0
+    </update>
 
     <select id="selectById" resultType="com.ctts.entity.TaskReview">
         SELECT <include refid="baseColumns"/>
         FROM task_review r
         WHERE r.id = #{id}
+          AND r.deleted = 0
     </select>
 
-    <!-- uk_review_submission 保证一个提交至多一条评审，所以这里用单对象返回：
-         返回类型就是约束的书面表达，看签名就知道不可能拿到多条 -->
+    <!-- 唯一索引保证"未删除的评审里，一个提交至多一条"，所以这里用单对象返回：
+         返回类型就是约束的书面表达，看签名就知道不可能拿到多条。
+         注意约束已含 deleted——一条提交可以有一条现役评审 + 若干条被删的历史评审。 -->
     <select id="selectBySubmissionId" resultType="com.ctts.entity.TaskReview">
         SELECT <include refid="baseColumns"/>
         FROM task_review r
         WHERE r.submission_id = #{submissionId}
+          AND r.deleted = 0
     </select>
 
-    <!-- 管理员视角：两个参数都可为 null；都不传时 <where> 内部无内容，SQL 退化为查全表 -->
+    <!-- 管理员视角：两个参数都可为 null；都不传时 <where> 只剩 deleted = 0，SQL 退化为查全部未删评审 -->
     <select id="selectByCondition" resultType="com.ctts.entity.TaskReview">
         SELECT <include refid="baseColumns"/>
         FROM task_review r
         <where>
+            r.deleted = 0
             <if test="submissionId != null">
                 AND r.submission_id = #{submissionId}
             </if>
@@ -59,6 +84,7 @@
         FROM task_review r
                  JOIN task_submission s ON s.id = r.submission_id
         <where>
+            AND r.deleted = 0
             AND s.user_id = #{userId}
             <if test="submissionId != null">
                 AND r.submission_id = #{submissionId}
@@ -71,6 +97,7 @@
         SELECT <include refid="baseColumns"/>
         FROM task_review r
         <where>
+            AND r.deleted = 0
             AND r.reviewer_id = #{userId}
             <if test="submissionId != null">
                 AND r.submission_id = #{submissionId}

@@ -1,5 +1,6 @@
 package com.ctts.interceptor;
 
+import com.ctts.common.RequireRole;
 import com.ctts.common.Result;
 import com.ctts.entity.User;
 import com.ctts.mapper.UserMapper;
@@ -11,9 +12,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Objects;
 
 @Slf4j
@@ -83,10 +86,11 @@ public class JwtInterceptor implements HandlerInterceptor {
         // 授权依据取库里的角色而不是 token 里的：走到这里两者必然相等，
         // 但"以库为准"让角色的唯一真相留在数据库，将来放宽比对逻辑也不会走偏
         request.setAttribute("role", dbRole);
-        // 已认证，再判断授权，角色权限不对返回 403
-        if (!checkRole(request, dbRole)) {
-            log.warn("权限不足: {} {} role={}", request.getMethod(), request.getRequestURI(), dbRole);
-            writeError(response, 403, "权限不足：当前角色不能执行该操作");
+
+        // 授权：规则来自被调方法（或所在类）上的 @RequireRole，不再按 URL 前缀猜。
+        // 拦截器注册在 /** 上，handler 也可能是静态资源处理器——非 HandlerMethod 一律交由后续处理。
+        if (handler instanceof HandlerMethod handlerMethod
+                && !checkRole(handlerMethod, response, request, dbRole)) {
             return false;
         }
         return true;
@@ -102,22 +106,34 @@ public class JwtInterceptor implements HandlerInterceptor {
         response.getWriter().write(objectMapper.writeValueAsString(Result.fail(code, message)));
     }
 
-    // 授权规则：查询放行；写操作按角色限制
-    private boolean checkRole(HttpServletRequest request, Integer role) {
-        if ("GET".equals(request.getMethod())) {
+    /**
+     * 按 {@link RequireRole} 判断授权。方法上的注解优先于类上的——
+     * 类上是模块默认值，方法上用来开例外（例如 {@code GET /users} 只给管理员，
+     * 而同一个类里的 {@code GET /users/{id}} 允许本人查看）。
+     *
+     * <p>都没有注解 = 任意已登录角色可调。这个默认值是有意的：
+     * 查询类接口本就对三种角色开放，逐个标注 {@code {1,2,3}} 只会把真正的限制淹掉。
+     * 代价是"新接口忘了贴注解"会默认可调——所以这个注解只在**收窄**时使用，
+     * 与 {@code @RequireRole} 的语义一致：它表达的是"仅限"，不是"放行"。
+     */
+    private boolean checkRole(HandlerMethod handlerMethod, HttpServletResponse response,
+                              HttpServletRequest request, Integer dbRole) throws IOException {
+        RequireRole rule = handlerMethod.getMethodAnnotation(RequireRole.class);
+        if (rule == null) {
+            rule = handlerMethod.getBeanType().getAnnotation(RequireRole.class);
+        }
+        if (rule == null) {
             return true;
         }
-        String uri = request.getRequestURI();
-        int need;
-        if (uri.startsWith("/users")) {
-            need = 3;              // 用户增删改：管理员
-        } else if (uri.startsWith("/submissions")) {
-            need = 1;              // 提交成果：学生
-        } else if (uri.startsWith("/projects") || uri.startsWith("/tasks") || uri.startsWith("/reviews")) {
-            need = 2;              // 项目/任务/评审：教师
-        } else {
+        if (dbRole != null && Arrays.stream(rule.value()).anyMatch(r -> r == dbRole)) {
             return true;
         }
-        return role != null && role == need;
+        String message = rule.message().isEmpty()
+                ? "权限不足：当前角色不能执行该操作"
+                : rule.message();
+        log.warn("权限不足: {} {} role={} 允许={}",
+                request.getMethod(), request.getRequestURI(), dbRole, Arrays.toString(rule.value()));
+        writeError(response, 403, message);
+        return false;
     }
 }

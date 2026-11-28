@@ -14,20 +14,26 @@
          用标量子查询把这个隐患从根上消掉，比事后靠 DISTINCT 补更可靠。
 
          submitted_pair_count 是"份数"：同一学生对同一任务提交多次只算一份。
-         它是提交率的分子，用条数会让提交率超过 100%。 -->
+         它是提交率的分子，用条数会让提交率超过 100%。
+
+         **逻辑删除的过滤必须写在 JOIN 的 ON 里，不能写在 WHERE 里**：
+         LEFT JOIN 的从表条件放到 WHERE 就退化成 INNER JOIN——
+         "零任务的项目"会因为 t.deleted 是 NULL（而不是 0）被整行过滤掉，
+         统计表里那个项目直接消失。这是逻辑删除最容易踩的一脚。 -->
     <select id="statsByProject" resultType="com.ctts.vo.ProjectStatsVO">
         SELECT p.id                   AS project_id,
                p.title                AS project_title,
                COUNT(DISTINCT t.id)   AS task_count,
-               (SELECT COUNT(*) FROM project_member m WHERE m.project_id = p.id) AS member_count,
+               (SELECT COUNT(*) FROM project_member m WHERE m.project_id = p.id AND m.deleted = 0) AS member_count,
                COUNT(DISTINCT s.id)   AS submission_count,
                COUNT(DISTINCT s.task_id, s.user_id) AS submitted_pair_count,
                COUNT(DISTINCT r.id)   AS reviewed_count,
                ROUND(AVG(r.score), 1) AS avg_score
         FROM training_project p
-                 LEFT JOIN task t ON t.project_id = p.id
-                 LEFT JOIN task_submission s ON s.task_id = t.id
-                 LEFT JOIN task_review r ON r.submission_id = s.id
+                 LEFT JOIN task t ON t.project_id = p.id AND t.deleted = 0
+                 LEFT JOIN task_submission s ON s.task_id = t.id AND s.deleted = 0
+                 LEFT JOIN task_review r ON r.submission_id = s.id AND r.deleted = 0
+        WHERE p.deleted = 0
         GROUP BY p.id, p.title
         ORDER BY p.id
     </select>

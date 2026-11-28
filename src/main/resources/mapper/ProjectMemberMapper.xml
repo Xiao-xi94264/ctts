@@ -14,22 +14,30 @@
         SELECT id, project_id, user_id, join_time
         FROM project_member
         WHERE project_id = #{projectId}
+          AND deleted = 0
         ORDER BY id
     </select>
 
-    <!-- 判重与回查共用。返回单对象：uk_member_project_user 保证最多一条，
-         用 List 会让人以为存在多条、进而写出"取第一条"这种掩盖数据问题的代码 -->
+    <!-- 判重与回查共用。返回单对象：唯一索引保证"未删除的成员里最多一条"。
+         用 List 会让人以为存在多条、进而写出"取第一条"这种掩盖数据问题的代码。
+         移出后再加入会插一行新的（旧行保留为历史），所以这里必须带 deleted = 0，
+         否则已移出的学生会被误判成"还在项目里"。 -->
     <select id="selectByProjectAndUser" resultType="com.ctts.entity.ProjectMember">
         SELECT id, project_id, user_id, join_time
         FROM project_member
         WHERE project_id = #{projectId}
           AND user_id = #{userId}
+          AND deleted = 0
     </select>
 
-    <delete id="deleteByProjectAndUser">
-        DELETE FROM project_member
+    <!-- 逻辑删除（移出成员）。deleted 写本行 id，
+         唯一索引 (project_id, user_id, deleted) 因此允许"移出再加回来" -->
+    <update id="softDeleteByProjectAndUser">
+        UPDATE project_member
+        SET deleted = id
         WHERE project_id = #{projectId}
           AND user_id = #{userId}
-    </delete>
+          AND deleted = 0
+    </update>
 
 </mapper>

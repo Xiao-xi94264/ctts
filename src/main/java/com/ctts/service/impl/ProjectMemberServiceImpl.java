@@ -73,7 +73,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         if (projectMemberMapper.selectByProjectAndUser(projectId, userId) == null) {
             throw new BusinessException(404, "该学生不是项目成员：projectId=" + projectId + ", userId=" + userId);
         }
-        projectMemberMapper.deleteByProjectAndUser(projectId, userId);
+        projectMemberMapper.softDeleteByProjectAndUser(projectId, userId);
     }
 
     private Project requireProject(Long projectId) {

@@ -1,5 +1,6 @@
 package com.ctts.controller;
 
+import com.ctts.common.RequireRole;
 import com.ctts.common.Result;
 import com.ctts.common.ValidationGroups;
 import com.ctts.entity.ProjectMember;
@@ -38,6 +39,7 @@ public class ProjectMemberController {
     private ProjectMemberService projectMemberService;
 
     @Operation(summary = "成员列表", description = "项目不存在 404；没有成员时返回空数组")
+    @RequireRole({1, 2, 3})
     @GetMapping
     public Result<List<ProjectMember>> list(@PathVariable Long projectId) {
         return Result.ok(projectMemberService.list(projectId));
@@ -47,6 +49,7 @@ public class ProjectMemberController {
     @Operation(summary = "加入成员",
             description = "userId 必填；只能加学生（role=1），非学生 400；重复加入 400；"
                     + "项目不存在 404；不是自己的项目 403")
+    @RequireRole({2})
     @PostMapping
     public Result<ProjectMember> add(@PathVariable Long projectId,
                                      @Validated(ValidationGroups.Create.class) @RequestBody ProjectMember member,
@@ -56,6 +59,7 @@ public class ProjectMemberController {
 
     //移出成员：路径里直接给 userId，不占用请求体
     @Operation(summary = "移出成员", description = "该学生不在项目里 404；不是自己的项目 403")
+    @RequireRole({2})
     @DeleteMapping("/{userId}")
     public Result<Void> remove(@PathVariable Long projectId, @PathVariable Long userId,
                                @RequestAttribute("userId") Long operatorId) {

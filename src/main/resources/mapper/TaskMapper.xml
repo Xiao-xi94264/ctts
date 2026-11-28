@@ -16,9 +16,19 @@
             <if test="totalScore != null">total_score = #{totalScore},</if>
         </set>
         WHERE id = #{id}
+          AND deleted = 0
     </update>
 
-    <delete id="delete">
+    <!-- 逻辑删除：deleted 写本行 id -->
+    <update id="softDelete">
+        UPDATE task
+        SET deleted = id
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+
+    <!-- 物理删除：仅测试清理与运维使用 -->
+    <delete id="hardDelete">
         DELETE
         FROM task
         WHERE id = #{id}
@@ -35,6 +45,7 @@
                update_time
         FROM task
         WHERE id = #{id}
+          AND deleted = 0
     </select>
 
     <select id="selectByCondition" resultType="com.ctts.entity.Task">
@@ -49,6 +60,7 @@
     FROM task
 
     <where>
+        deleted = 0
         <if test="projectId != null">
             AND project_id = #{projectId}
         </if>
@@ -68,6 +80,7 @@
         FROM task
 
         <where>
+            deleted = 0
             <if test="projectId != null">
                 AND project_id = #{projectId}
             </if>
@@ -76,17 +89,28 @@
 
     </select>
 
-    <!-- 与 selectByPage 的 <where> 必须逐字一致：两处条件不同，total 就会与 list 对不上 -->
+    <!-- 与 selectByPage 的 <where> 必须逐字一致：两处条件不同，total 就会与 list 对不上。
+         这也是"逻辑删除最容易漏"的地方——page 过滤了、count 没过滤，
+         分页时就会出现「共 5 条，只显示 3 条」这种对不上的现象 -->
     <select id="selectCount" resultType="long">
         SELECT COUNT(*)
         FROM task
 
         <where>
+            deleted = 0
             <if test="projectId != null">
                 AND project_id = #{projectId}
             </if>
         </where>
 
+    </select>
+
+    <!-- 删除项目前的守卫。带 deleted = 0：已删的任务不该阻止删项目 -->
+    <select id="countByProjectId" resultType="long">
+        SELECT COUNT(*)
+        FROM task
+        WHERE project_id = #{projectId}
+          AND deleted = 0
     </select>
 
 </mapper>

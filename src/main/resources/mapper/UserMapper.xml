@@ -2,20 +2,26 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ctts.mapper.UserMapper">
 
+    <!-- 逻辑删除的统一约定：每条读取都必须带 deleted = 0。
+         漏掉任何一处，被"删除"的用户就会从那个入口重新出现——
+         这类 bug 不会报错，只会让人觉得"删了怎么还在"。 -->
+
     <select id="selectById" resultType="com.ctts.entity.User">
         SELECT id, username, real_name, role, phone, email, status, create_time, update_time
         FROM sys_user
         WHERE id = #{id}
+          AND deleted = 0
     </select>
 
-    <!-- 查全部 / 按角色筛选合成一条：role 不传时 <if> 不产出内容，<where> 整个消失 → 退化成查全表。
-         这种"空条件退化"是刻意的写法，前提是调用方传 null 时确实想要全部。
-         列清单与 selectById 保持一致，避免 D6 那种漏列 -->
+    <!-- 查全部 / 按角色筛选合成一条：role 不传时 <if> 不产出内容，<where> 只剩 deleted = 0 → 退化成查全部未删用户。
+         deleted = 0 必须写在 <where> 里面而不是外面：<where> 会在第一个条件前补 WHERE，
+         若把它写死在外面，role 为 null 时就会出现 WHERE deleted = 0 后又没有其他条件，语法仍对但语义分散在两层 -->
     <select id="selectByRole" resultType="com.ctts.entity.User">
         SELECT id, username, real_name, role, phone, email, status, create_time, update_time
         FROM sys_user
         <where>
-            <if test="role != null">role = #{role}</if>
+            deleted = 0
+            <if test="role != null">AND role = #{role}</if>
         </where>
     </select>
 
@@ -24,7 +30,8 @@
         VALUES (#{username}, #{password}, #{realName}, #{role}, #{phone}, #{email})
     </insert>
 
-    <!-- 部分更新：只写传了值的列。password 不在其中——改密码应走独立接口（验证旧密码后写入新哈希） -->
+    <!-- 部分更新：只写传了值的列。password 不在其中——改密码应走独立接口（验证旧密码后写入新哈希）。
+         WHERE 带 deleted = 0：已删除的账号不该还能被改 -->
     <update id="update">
         UPDATE sys_user
         <set>
@@ -35,6 +42,7 @@
             <if test="email != null">email = #{email},</if>
         </set>
         WHERE id = #{id}
+          AND deleted = 0
     </update>
 
     <!-- 账号启停专用。与上面的 update 分开的理由：
@@ -44,18 +52,33 @@
         UPDATE sys_user
         SET status = #{status}
         WHERE id = #{id}
+          AND deleted = 0
     </update>
 
-    <delete id="delete">
+    <!-- 逻辑删除。deleted 写本行 id 而不是 1：
+         唯一索引是 (username, deleted)，未删的行都是 0 才保证用户名唯一；
+         若删除后统一写 1，同一个用户名被删两次时第二行会撞 (name, 1)。
+         换成 id 后每条被删记录占一个独立位置，历史可以一直留着。 -->
+    <update id="softDelete">
+        UPDATE sys_user
+        SET deleted = id
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+
+    <!-- 物理删除：仅测试清理与运维使用 -->
+    <delete id="hardDelete">
         DELETE
         FROM sys_user
-        where id = #{id};
+        WHERE id = #{id}
     </delete>
 
+    <!-- 登录用。已删除的账号查不到 → 登录时表现为"用户名或密码错误"，不泄露"这个号曾经存在" -->
     <select id="selectByUsername" resultType="com.ctts.entity.User">
         select id, username, password, real_name, role, phone, email, status, create_time, update_time
         from sys_user
         where username = #{username}
+          and deleted = 0
     </select>
 
 </mapper>

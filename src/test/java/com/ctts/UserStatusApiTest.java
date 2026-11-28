@@ -156,7 +156,7 @@ class UserStatusApiTest {
         for (String username : new String[]{TARGET_USERNAME, ADMIN_USERNAME}) {
             User u = userMapper.selectByUsername(username);
             if (u != null) {
-                userMapper.delete(u.getId());
+                userMapper.hardDelete(u.getId());
             }
         }
     }

@@ -10,8 +10,15 @@ import java.util.List;
 public interface TaskSubmissionMapper {
     //增加提交
     int insert(TaskSubmission taskSubmission);
-    //删除提交
-    int delete(Long id);
+    //逻辑删除：deleted 置为本行 id。删掉后同一学生可重新提交（唯一索引含 deleted）
+    int softDelete(Long id);
+
+    //物理删除：仅供测试清理与运维
+    int hardDelete(Long id);
+
+    /** 某任务下还有几份未删除的提交：删除任务前的存在性检查。
+     *  软删除后外键不再拦"删父留子"，这条计数就是唯一的守卫 */
+    long countByTaskId(@Param("taskId") Long taskId);
     //更改提交
     int update(TaskSubmission taskSubmission);
     //查询全部提交（仅管理员视角使用）

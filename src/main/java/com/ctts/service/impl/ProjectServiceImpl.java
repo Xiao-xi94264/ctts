@@ -3,6 +3,7 @@ package com.ctts.service.impl;
 import com.ctts.common.BusinessException;
 import com.ctts.entity.Project;
 import com.ctts.mapper.ProjectMapper;
+import com.ctts.mapper.TaskMapper;
 import com.ctts.service.ProjectService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,10 @@ public class ProjectServiceImpl implements ProjectService {
     @Autowired
     private ProjectMapper projectMapper;
 
+    // 删除项目前要数一遍任务数：软删除后外键不再拦截，只能由这里判
+    @Autowired
+    private TaskMapper taskMapper;
+
     @Override
     public List<Project> list() {
         return projectMapper.selectAll();
@@ -23,7 +28,12 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public Project getById(Long id) {
-        return projectMapper.selectById(id);
+        Project project = projectMapper.selectById(id);
+        // 与 User/Task 同类问题：null 被包成 200 + data:null，而文档承诺 404
+        if (project == null) {
+            throw new BusinessException(404, "项目不存在");
+        }
+        return project;
     }
 
     @Override
@@ -62,7 +72,15 @@ public class ProjectServiceImpl implements ProjectService {
             throw new BusinessException(404, "项目不存在");
         }
         checkProjectOwner(existing, currentUserId);
-        projectMapper.delete(id);
+
+        // 与 TaskServiceImpl.delete 同理：软删除不再触发外键，
+        // "项目下还有任务"必须自己数一遍，否则会留下指向已删项目的孤儿任务
+        long taskCount = taskMapper.countByProjectId(id);
+        if (taskCount > 0) {
+            throw new BusinessException(400,
+                    "项目下还有 " + taskCount + " 个任务，不能删除；请先删除任务");
+        }
+        projectMapper.softDelete(id);
     }
 
     /** 项目归属教师；teacher_id 不在 update 的 <set> 里，改不了，所以先查后写无竞态 */

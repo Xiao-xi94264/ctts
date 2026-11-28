@@ -5,6 +5,7 @@ import com.ctts.entity.Project;
 import com.ctts.entity.Task;
 import com.ctts.mapper.ProjectMapper;
 import com.ctts.mapper.TaskMapper;
+import com.ctts.mapper.TaskSubmissionMapper;
 import com.ctts.service.TaskService;
 import com.ctts.vo.PageVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,10 @@ public class TaskServiceImpl implements TaskService {
     @Autowired
     private ProjectMapper projectMapper;
 
+    // 删除任务前要数一遍提交数：软删除后外键不再拦截，只能由这里判
+    @Autowired
+    private TaskSubmissionMapper taskSubmissionMapper;
+
     @Override
     public List<Task> list(Long projectId) {
         return taskMapper.selectByCondition(projectId);
@@ -34,7 +39,12 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public Task getById(Long id) {
-        return taskMapper.selectById(id);
+        Task task = taskMapper.selectById(id);
+        // 与 User/Project 同类问题：null 被包成 200 + data:null，而文档承诺 404
+        if (task == null) {
+            throw new BusinessException(404, "任务不存在");
+        }
+        return task;
     }
 
     @Override
@@ -79,7 +89,17 @@ public class TaskServiceImpl implements TaskService {
             throw new BusinessException(404, "任务不存在");
         }
         checkTaskOwner(existing.getProjectId(), currentUserId);
-        taskMapper.delete(id);
+
+        // 软删除（第㊵步）之后，这条规则不能再靠外键兜底了：
+        // 以前 DELETE FROM task 会被 task_submission.task_id 的外键拦住（errno 1451），
+        // 现在只是 UPDATE deleted = id，外键根本不触发——不显式判一次，
+        // "任务下有提交"就会变成一堆指向已删任务的孤儿提交。
+        long submissionCount = taskSubmissionMapper.countByTaskId(id);
+        if (submissionCount > 0) {
+            throw new BusinessException(400,
+                    "任务下还有 " + submissionCount + " 份提交，不能删除；请先删除提交");
+        }
+        taskMapper.softDelete(id);
     }
 
     @Override

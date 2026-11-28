@@ -124,7 +124,7 @@ public class TaskReviewServiceImpl implements TaskReviewService {
             throw new BusinessException(404, "评审记录不存在");
         }
         checkReviewOwner(taskReview, currentUserId);
-        taskReviewMapper.delete(id);
+        taskReviewMapper.softDelete(id);
         // 状态回退到 1（待评审），status 只有 1/2 两个值。
         // 注意这里传的是 submissionId 而不是 review 的 id ——
         // updateStatus 的 WHERE 条件是 task_submission.id，传错主键会改到别人的提交

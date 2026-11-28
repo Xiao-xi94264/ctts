@@ -1,5 +1,6 @@
 package com.ctts.controller;
 
+import com.ctts.common.RequireRole;
 import com.ctts.common.Result;
 import com.ctts.service.StatsService;
 import com.ctts.vo.ProjectStatsVO;
@@ -27,6 +28,7 @@ public class StatsController {
             description = "四表 JOIN + 成员数标量子查询；用 COUNT(DISTINCT) 防 JOIN 行放大。"
                     + "submissionCount 是条数、submittedPairCount 是份数（同一学生对同一任务去重），提交率的分子用后者。"
                     + "submitRate 与 avgScore 在没有分母/没有评审时为 null 而不是 0")
+    @RequireRole({1, 2, 3})
     @GetMapping("/projects")
     public Result<List<ProjectStatsVO>> statsByProject() {
         return Result.ok(statsService.statsByProject());

@@ -1,5 +1,6 @@
 package com.ctts.controller;
 
+import com.ctts.common.RequireRole;
 import com.ctts.common.Result;
 import com.ctts.common.ValidationGroups;
 import com.ctts.entity.TaskSubmission;
@@ -21,6 +22,7 @@ public class TaskSubmissionController {
 
     //查询提交列表：管理员看全部，学生只看自己的，教师只看自己项目下的
     @Operation(summary = "提交列表", description = "按角色收窄，不返回 403 而是只给可见的那部分")
+    @RequireRole({1, 2, 3})
     @GetMapping
     public Result<List<TaskSubmission>> list(@RequestAttribute("userId") Long userId,
                                              @RequestAttribute("role") Integer role) {
@@ -29,6 +31,7 @@ public class TaskSubmissionController {
 
     //根据id查询提交：同样按角色收窄（管理员全部 / 学生自己的 / 教师自己项目下的）
     @Operation(summary = "提交详情", description = "不在可见范围内 403；不存在 404")
+    @RequireRole({1, 2, 3})
     @GetMapping("/{id}")
     public Result<TaskSubmission> getById(@PathVariable Long id,
                                           @RequestAttribute("userId") Long userId,
@@ -40,6 +43,7 @@ public class TaskSubmissionController {
     @Operation(summary = "提交任务",
             description = "taskId 必填；userId 只认 token（请求体传了也无效）；"
                     + "同一任务只能交一份，重复提交 400 并给出已有提交 id 与改内容的 PUT 路径")
+    @RequireRole({1})
     @PostMapping
     public Result<TaskSubmission> add(@Validated(ValidationGroups.Create.class) @RequestBody TaskSubmission submission,
                                       @RequestAttribute("userId") Long userId) {
@@ -49,6 +53,7 @@ public class TaskSubmissionController {
 
     //修改提交：只能改自己的，别人的返回 403
     @Operation(summary = "部分更新提交", description = "只能改自己的，否则 403；不存在 404")
+    @RequireRole({1})
     @PutMapping("/{id}")
     public Result<TaskSubmission> update(@PathVariable Long id, @RequestBody TaskSubmission submission,
                                          @RequestAttribute("userId") Long userId) {
@@ -57,6 +62,7 @@ public class TaskSubmissionController {
 
     //删除提交：同样只允许删自己的
     @Operation(summary = "删除提交", description = "只能删自己的，否则 403")
+    @RequireRole({1})
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id, @RequestAttribute("userId") Long userId) {
         taskSubmissionService.delete(id, userId);

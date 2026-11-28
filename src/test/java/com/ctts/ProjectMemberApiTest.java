@@ -160,7 +160,7 @@ class ProjectMemberApiTest {
     }
 
     @Test
-    @DisplayName("学生调成员写接口 → 403：拦截器按 /projects 前缀判定，轮不到 Service")
+    @DisplayName("学生调成员写接口 → 403：@RequireRole({2}) 在拦截器就拦下，轮不到 Service")
     void studentIsForbiddenByInterceptor() throws Exception {
         mockMvc.perform(post("/projects/" + projectId + "/members")
                         .header("Authorization", "Bearer " + token(studentId, 1))

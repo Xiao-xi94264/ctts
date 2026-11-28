@@ -2,10 +2,12 @@ package com.ctts.service.impl;
 
 import com.ctts.common.BusinessException;
 import com.ctts.entity.TaskSubmission;
+import com.ctts.mapper.TaskReviewMapper;
 import com.ctts.mapper.TaskSubmissionMapper;
 import com.ctts.service.TaskSubmissionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
@@ -15,6 +17,10 @@ public class TaskSubmissionServiceImpl implements TaskSubmissionService {
 
     @Autowired
     private TaskSubmissionMapper taskSubmissionMapper;
+
+    // 删除提交要级联标记评审，软删除后外键不再负责这件事
+    @Autowired
+    private TaskReviewMapper taskReviewMapper;
 
     /**
      * 列表按角色收窄可见范围：
@@ -97,14 +103,21 @@ public class TaskSubmissionServiceImpl implements TaskSubmissionService {
         return taskSubmissionMapper.selectById(id);
     }
 
+    // 两条 UPDATE 必须同生共死：只删评审没删提交，学生以为删了但列表里还在；
+    // 只删提交没删评审，评审变成孤儿。软删除把这件事从"数据库保证"变成了"事务保证"
     @Override
+    @Transactional
     public void delete(Long id, Long currentUserId) {
         TaskSubmission existing = taskSubmissionMapper.selectById(id);
         if (existing == null) {
             throw new BusinessException(404, "提交不存在");
         }
         checkSubmissionOwner(existing, currentUserId);
-        taskSubmissionMapper.delete(id);
+        // 先删子后删父：软删除不触发外键，评审不会自己消失。
+        // 不处理就会留下指向已删提交的评审——统计里看不到（JOIN 从提交出发），
+        // 但 GET /reviews 仍会返回，教师会看到一条"评了却不存在的作业"的记录
+        taskReviewMapper.softDeleteBySubmissionId(id);
+        taskSubmissionMapper.softDelete(id);
     }
 
     /** user_id 不在 update 的 <set> 里，改不了；因此"先查后写"之间没有竞态 */

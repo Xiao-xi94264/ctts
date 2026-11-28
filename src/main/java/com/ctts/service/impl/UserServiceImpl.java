@@ -47,7 +47,14 @@ public class UserServiceImpl implements UserService {
         if (!Integer.valueOf(3).equals(currentRole) && !Objects.equals(id, currentUserId)) {
             throw new BusinessException(403, "只能查看自己的账号信息");
         }
-        return userMapper.selectById(id);
+        User user = userMapper.selectById(id);
+        // 权限通过不代表记录存在。这里原先直接 return，null 被 Result.ok 包成
+        // "200 + data:null"，文档却写着 404——前端只能看到"查到了但什么都没有"。
+        // 逻辑删除（第㊵步）让这个偏差更明显：已删用户也会这样返回
+        if (user == null) {
+            throw new BusinessException(404, "用户不存在");
+        }
+        return user;
     }
 
     @Override
@@ -75,7 +82,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void delete(Long id) {
-        if (userMapper.delete(id) == 0) {
+        if (userMapper.softDelete(id) == 0) {
             // 影响行数为 0 说明这条记录根本不存在，删除"成功"是假象
             throw new BusinessException(404, "用户不存在，无法删除");
         }
