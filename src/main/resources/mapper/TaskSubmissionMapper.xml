@@ -74,4 +74,13 @@
         WHERE s.id = #{submissionId}
     </select>
 
+    <!-- 一个学生对同一任务只交一份。返回单个对象而不是 List：
+         调用方只关心"有没有、是哪一条"，用 List 会让人误以为存在多条。 -->
+    <select id="selectByTaskAndUser" resultType="com.ctts.entity.TaskSubmission">
+        SELECT <include refid="baseColumns"/>
+        FROM task_submission s
+        WHERE s.task_id = #{taskId}
+          AND s.user_id = #{userId}
+    </select>
+
 </mapper>

@@ -1,11 +1,13 @@
 package com.ctts.controller;
 
 import com.ctts.common.Result;
+import com.ctts.common.ValidationGroups;
 import com.ctts.entity.TaskSubmission;
 import com.ctts.service.TaskSubmissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,9 +37,11 @@ public class TaskSubmissionController {
     }
 
     //提交任务：userId 只认 token，请求体里传什么都不作数
-    @Operation(summary = "提交任务", description = "userId 只认 token（请求体传了也无效）；status 由服务端置 1（待评审）")
+    @Operation(summary = "提交任务",
+            description = "taskId 必填；userId 只认 token（请求体传了也无效）；"
+                    + "同一任务只能交一份，重复提交 400 并给出已有提交 id 与改内容的 PUT 路径")
     @PostMapping
-    public Result<TaskSubmission> add(@RequestBody TaskSubmission submission,
+    public Result<TaskSubmission> add(@Validated(ValidationGroups.Create.class) @RequestBody TaskSubmission submission,
                                       @RequestAttribute("userId") Long userId) {
         submission.setUserId(userId);
         return Result.ok(taskSubmissionService.add(submission));

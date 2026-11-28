@@ -83,7 +83,11 @@ class ReviewFilterTest {
 
     private Long teacherA;
     private Long teacherB;
-    private Long studentId;
+    /** subA..subD 分属四个学生：uk_submission_task_user 落地后，同一学生不能对同一任务交两次 */
+    private Long studentA;
+    private Long studentB;
+    private Long studentC;
+    private Long studentD;
     /** 管理员：本类验证的是"筛选条件是否下推到 SQL"，需要一个不受可见范围收窄的视角 */
     private Long adminId;
     /** subA 有 1 条评审、subB 有 1 条、subD 有 1 条，subC 一条都没有 */
@@ -96,7 +100,10 @@ class ReviewFilterTest {
     void 造四条提交与三条评审() {
         teacherA = 新建用户("zz_rf_teacher_a", 2);
         teacherB = 新建用户("zz_rf_teacher_b", 2);
-        studentId = 新建用户("zz_rf_student", 1);
+        studentA = 新建用户("zz_rf_student_a", 1);
+        studentB = 新建用户("zz_rf_student_b", 1);
+        studentC = 新建用户("zz_rf_student_c", 1);
+        studentD = 新建用户("zz_rf_student_d", 1);
         adminId = 新建用户("zz_rf_admin", 3);
 
         Project project = new Project();
@@ -114,10 +121,10 @@ class ReviewFilterTest {
         task.setTotalScore(100);
         taskMapper.insert(task);
 
-        subA = 新建提交(task.getId(), "提交A");
-        subB = 新建提交(task.getId(), "提交B");
-        subC = 新建提交(task.getId(), "提交C");
-        subD = 新建提交(task.getId(), "提交D");
+        subA = 新建提交(task.getId(), studentA, "提交A");
+        subB = 新建提交(task.getId(), studentB, "提交B");
+        subC = 新建提交(task.getId(), studentC, "提交C");
+        subD = 新建提交(task.getId(), studentD, "提交D");
 
         // 一个提交只评一次（uk_review_submission）：
         // 教师A 评了 subA 与 subD 两份，教师B 评了 subB 一份 —— 共 3 条评审、3 个不同提交
@@ -237,10 +244,10 @@ class ReviewFilterTest {
         return u.getId();
     }
 
-    private Long 新建提交(Long taskId, String content) {
+    private Long 新建提交(Long taskId, Long userId, String content) {
         TaskSubmission s = new TaskSubmission();
         s.setTaskId(taskId);
-        s.setUserId(studentId);
+        s.setUserId(userId);
         s.setContent(content);
         taskSubmissionMapper.insert(s);
         return s.getId();

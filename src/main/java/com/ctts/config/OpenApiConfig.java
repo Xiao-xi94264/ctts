@@ -23,7 +23,7 @@ import java.util.Arrays;
  * <p>两个 Bean：{@code cttsOpenAPI} 给文档一个标题和背景说明；{@code commonResponses}
  * 给全部操作统一挂 400 / 401 / 403 / 404。
  *
- * <p><b>为什么用 {@link OperationCustomizer} 而不是在 29 个方法上各写一遍 {@code @ApiResponse}</b>：
+ * <p><b>为什么用 {@link OperationCustomizer} 而不是在 32 个方法上各写一遍 {@code @ApiResponse}</b>：
  * 错误码是**横切语义**——400 来自 {@code @Validated} 与 {@code GlobalExceptionHandler}，
  * 401 来自 {@code JwtInterceptor}，403 来自拦截器与各 Service 的归属校验，404 来自"先查后写"。
  * 它们不属于某个方法，逐方法手写必然漂移；更糟的是**新增接口时忘了写，文档会悄悄退化成只有 200**。
@@ -48,7 +48,7 @@ public class OpenApiConfig {
                 .title("CTTS 校园实训任务管理系统 API")
                 .version("v1.1")
                 .description("""
-                        29 个接口，统一返回 `{code, message, data}`。
+                        32 个接口，统一返回 `{code, message, data}`。
 
                         角色：1 学生 / 2 教师 / 3 管理员。除 `POST /users/login` 外，所有接口都需要
                         `Authorization: Bearer <token>`，身份只认 token——请求体里传 `userId`/`teacherId`/`reviewerId` 一律无效。
@@ -123,9 +123,18 @@ public class OpenApiConfig {
                         || p.isAnnotationPresent(RequestBody.class));
     }
 
-    /** 按类上的 @RequestMapping 前缀判断模块，避免 config 反向依赖具体 Controller 类 */
+    /**
+     * 按类上的 @RequestMapping 前缀判断模块，避免 config 反向依赖具体 Controller 类。
+     *
+     * <p>用 {@code startsWith} 而不是 {@code equals}：子资源也属于父模块的权限模型。
+     * {@code /projects/{projectId}/members} 的写操作同样只有项目负责人能做（403），
+     * 用 equals 判断会把它当成"未知模块"，这个 403 就从文档里消失了。
+     */
     private static boolean isUnder(HandlerMethod handlerMethod, String prefix) {
         RequestMapping mapping = handlerMethod.getBeanType().getAnnotation(RequestMapping.class);
-        return mapping != null && mapping.value().length > 0 && prefix.equals(mapping.value()[0]);
+        if (mapping == null || mapping.value().length == 0) {
+            return false;
+        }
+        return mapping.value()[0].startsWith(prefix);
     }
 }

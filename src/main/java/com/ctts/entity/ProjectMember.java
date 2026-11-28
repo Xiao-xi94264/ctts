@@ -1,5 +1,7 @@
 package com.ctts.entity;
 
+import com.ctts.common.ValidationGroups;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,9 +23,15 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class ProjectMember {
     private Long id;
+
+    /** 项目 ID：由路径参数决定，请求体里传了也不作数，所以不挂校验 */
     private Long projectId;
-    /** 成员（学生）ID，对应 sys_user.id */
+
+    /** 成员（学生）ID，对应 sys_user.id。加入成员时必填，缺失报 400 而不是落库成 500 */
+    @NotNull(message = "学生 ID 不能为空", groups = ValidationGroups.Create.class)
     private Long userId;
+
     /** 加入时间，由数据库默认值生成，Java 侧不回填 */
     private LocalDateTime joinTime;
 }
+

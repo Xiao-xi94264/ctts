@@ -63,6 +63,16 @@ public class TaskSubmissionServiceImpl implements TaskSubmissionService {
 
     @Override
     public TaskSubmission add(TaskSubmission submission) {
+        // 一个学生对同一任务只交一份。与 #16 的评审唯一是同一套两层结构：
+        // 这一层负责给出能读懂的提示（"改内容请走 PUT"），
+        // 数据库 uk_submission_task_user 那层负责防并发——两个请求同时通过下面的判空，
+        // 只有一个能插入成功，另一个撞唯一索引落成 400，不会出现两份互相矛盾的作业。
+        TaskSubmission existing = taskSubmissionMapper.selectByTaskAndUser(
+                submission.getTaskId(), submission.getUserId());
+        if (existing != null) {
+            throw new BusinessException(400,
+                    "该任务已提交（id=" + existing.getId() + "），修改内容请调用 PUT /submissions/" + existing.getId());
+        }
         taskSubmissionMapper.insert(submission);
         //需要返回已经插入的提交时间，只在数据库中生成
         return taskSubmissionMapper.selectById(submission.getId());

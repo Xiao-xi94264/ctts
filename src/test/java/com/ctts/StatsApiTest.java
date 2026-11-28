@@ -82,19 +82,23 @@ class StatsApiTest {
 
         projectId = 新建项目("统计测试项目");
 
-        // 两个成员：一个交了 3 条提交，另一个一条都没交。
-        // 后者是必需的角色——只统计"交过的人"，分母会永远等于分子，提交率恒为 100%
-        Long passiveStudentId = 新建用户("zz_st_student2", 1);
+        // 三个成员：s1 交了 A/B 两份，s2 交了 A 一份，s3 一份都没交。
+        // s3 是必需的角色——只统计"交过的人"，分母会永远等于分子，提交率恒为 100%。
+        // 同一条提交不能由两个学生共用（uk_submission_task_user），
+        // 所以"多条提交"只能靠"多个学生"造，不能再让同一学生重复交同一任务。
+        Long secondStudentId = 新建用户("zz_st_student2", 1);
+        Long idleStudentId = 新建用户("zz_st_student3", 1);
         新建成员(projectId, studentId);
-        新建成员(projectId, passiveStudentId);
+        新建成员(projectId, secondStudentId);
+        新建成员(projectId, idleStudentId);
 
         Long taskA = 新建任务(projectId, "任务A");
         Long taskB = 新建任务(projectId, "任务B");
 
-        // 任务A 两条提交，任务B 一条 → 共 3 条
-        Long sub1 = 新建提交(taskA);
-        Long sub2 = 新建提交(taskA);
-        新建提交(taskB);
+        // 任务A 两条（两个学生各一条），任务B 一条 → 共 3 条，且 3 个 (任务,学生) 组合互不相同
+        Long sub1 = 新建提交(taskA, studentId);
+        Long sub2 = 新建提交(taskA, secondStudentId);
+        新建提交(taskB, studentId);
 
         // 前两条提交各一条评审，分数 80/90 → 平均 85
         新建评审(sub1, 80);
@@ -128,15 +132,16 @@ class StatsApiTest {
     }
 
     @Test
-    @DisplayName("提交「条数」与「份数」是两个数：3 条提交只对应 2 份")
-    void submissionCountAndPairCountDiffer() throws Exception {
+    @DisplayName("条数与份数在唯一约束下恒等：重复提交已不可能，两个字段留着防将来放开重交")
+    void submissionCountAndPairCountAreEqual() throws Exception {
         JsonNode item = 取统计项(projectId);
 
-        // 造数：任务A 交了两条（同一学生重复交），任务B 交了一条
-        assertEquals(3, item.get("submissionCount").asInt(), "条数按记录算，重复提交各算一条");
-        assertEquals(2, item.get("submittedPairCount").asInt(),
-                "份数按 (任务,学生) 去重：任务A重复的两次合成一份，共 2 份。"
-                        + "若这里也是 3，说明少了 DISTINCT，提交率会被重复提交抬高");
+        // 3 条提交恰好是 3 个不同的 (任务,学生) 组合
+        assertEquals(3, item.get("submissionCount").asInt(), "条数按记录算");
+        assertEquals(3, item.get("submittedPairCount").asInt(),
+                "uk_submission_task_user 落地后，同一学生对同一任务只能有一份，条数与份数必然相等。"
+                        + "这两个字段仍然分开保留：若将来允许重交（保留历史版本），它们会重新分叉，"
+                        + "而提交率的分子必须始终取份数，否则比率会超过 100%");
     }
 
     @Test
@@ -144,11 +149,11 @@ class StatsApiTest {
     void submitRateUsesMemberCountAsDenominator() throws Exception {
         JsonNode item = 取统计项(projectId);
 
-        // 2 个成员（其中一个一条没交）× 2 个任务 = 应交 4 份，实交 2 份
-        assertEquals(2, item.get("memberCount").asInt(), "成员数应含未提交的那个学生");
-        assertEquals(4, item.get("expectedCount").asInt(), "应交份数 = 2 人 × 2 任务");
+        // 3 个成员（其中 s3 一份没交）× 2 个任务 = 应交 6 份，实交 3 份
+        assertEquals(3, item.get("memberCount").asInt(), "成员数应含一份都没交的那个学生");
+        assertEquals(6, item.get("expectedCount").asInt(), "应交份数 = 3 人 × 2 任务");
         assertEquals(0.5, item.get("submitRate").asDouble(), 0.0001,
-                "2/4 = 0.5。若分母只数\"交过的人\"，这里会算成 1.0，提交率永远好看");
+                "3/6 = 0.5。若分母只数\"交过的人\"，这里会算成 3/4 = 0.75，提交率永远好看");
     }
 
     @Test
@@ -230,10 +235,10 @@ class StatsApiTest {
         return t.getId();
     }
 
-    private Long 新建提交(Long taskId) {
+    private Long 新建提交(Long taskId, Long userId) {
         TaskSubmission s = new TaskSubmission();
         s.setTaskId(taskId);
-        s.setUserId(studentId);
+        s.setUserId(userId);
         s.setContent("统计测试提交");
         taskSubmissionMapper.insert(s);
         return s.getId();

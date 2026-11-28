@@ -140,10 +140,13 @@ class ReviewTransactionTest {
     @Test
     @DisplayName("删除评审不影响其他提交的状态")
     void deleteReviewDoesNotTouchOtherSubmissions() {
-        // 另建一条提交，保持待评审
+        // 另建一条提交，保持待评审。
+        // 必须换一个学生交：uk_submission_task_user 落地后，同一学生对同一任务只能有一份提交，
+        // 这里若仍用 studentId 会直接撞唯一索引——改数据不改断言。
+        Long otherStudentId = 新建用户("zz_rv_student2", 1);
         TaskSubmission other = new TaskSubmission();
         other.setTaskId(taskSubmissionMapper.selectById(submissionId).getTaskId());
-        other.setUserId(studentId);
+        other.setUserId(otherStudentId);
         other.setContent("另一条不该被影响的提交");
         taskSubmissionMapper.insert(other);
 

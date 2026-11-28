@@ -9,9 +9,8 @@ import java.util.List;
 /**
  * 项目成员表访问层。
  *
- * <p>当前只服务于统计（成员数）与测试造数，**尚无对外接口**——
- * 也就是说成员数据目前只能由 DBA / SQL 维护。成员管理接口（加入、移出、批量导入）
- * 已记入待办，待有了它这张表才算闭环。
+ * <p>服务于两处：统计的成员数（分母），以及成员管理接口（加入 / 移出 / 查看）。
+ * 成员只能由项目负责人教师维护——这条规则写在 Service，不写在 Mapper。
  */
 @Mapper
 public interface ProjectMemberMapper {
@@ -21,6 +20,10 @@ public interface ProjectMemberMapper {
 
     //查某项目的全部成员
     List<ProjectMember> selectByProjectId(@Param("projectId") Long projectId);
+
+    //查某学生是否已在项目里。返回单对象：业务上最多一条（uk_member_project_user 保证）
+    ProjectMember selectByProjectAndUser(@Param("projectId") Long projectId,
+                                         @Param("userId") Long userId);
 
     //移出成员：按 (项目, 用户) 定位，不按主键——调用方手里通常没有 id
     int deleteByProjectAndUser(@Param("projectId") Long projectId,

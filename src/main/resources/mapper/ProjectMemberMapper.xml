@@ -17,6 +17,15 @@
         ORDER BY id
     </select>
 
+    <!-- 判重与回查共用。返回单对象：uk_member_project_user 保证最多一条，
+         用 List 会让人以为存在多条、进而写出"取第一条"这种掩盖数据问题的代码 -->
+    <select id="selectByProjectAndUser" resultType="com.ctts.entity.ProjectMember">
+        SELECT id, project_id, user_id, join_time
+        FROM project_member
+        WHERE project_id = #{projectId}
+          AND user_id = #{userId}
+    </select>
+
     <delete id="deleteByProjectAndUser">
         DELETE FROM project_member
         WHERE project_id = #{projectId}

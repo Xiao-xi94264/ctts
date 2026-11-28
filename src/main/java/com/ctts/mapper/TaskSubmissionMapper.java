@@ -27,4 +27,7 @@ public interface TaskSubmissionMapper {
     List<TaskSubmission> selectByTeacherId(@Param("teacherId") Long teacherId);
     //查某条提交所属项目的负责教师，用于"只能评审自己项目下的提交"这条校验
     Long selectProjectTeacherId(@Param("submissionId") Long submissionId);
+    //查同一学生对同一任务是否已交过：一个任务只收一份，判重用
+    TaskSubmission selectByTaskAndUser(@Param("taskId") Long taskId,
+                                       @Param("userId") Long userId);
 }
