@@ -1,9 +1,11 @@
 package com.ctts.controller;
 
 import com.ctts.common.Result;
+import com.ctts.common.ValidationGroups;
 import com.ctts.entity.User;
 import com.ctts.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,8 +34,10 @@ public class UserController {
     }
 
     // 增加新用户
+    // @Validated(Create) 而不是 @Valid：约束都挂在 Create 组，@Valid 只触发 Default 组，
+    // 用错等于没校验，password 为 null 会一路走到 BCrypt 抛 IllegalArgumentException → 500
     @PostMapping
-    public Result<User> add(@RequestBody User user) {
+    public Result<User> add(@Validated(ValidationGroups.Create.class) @RequestBody User user) {
         return Result.ok(userService.add(user));
     }
 
