@@ -27,8 +27,16 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public Task add(Task task) {
+        // task.total_score 列上有 DEFAULT 100，但 insert 是静态列清单：
+        // Java 里是 null 就会被显式写成 NULL，撞 NOT NULL（errno 1048），默认值根本不参与。
+        // 数据库默认值只在"这一列不出现在 INSERT 语句里"时才生效，所以默认值必须在 Java 侧补。
+        // 改这里的数值要同步改 DDL，两处必须一致。
+        if (task.getTotalScore() == null) {
+            task.setTotalScore(100);
+        }
         taskMapper.insert(task);
-        return task;
+        // create_time / update_time 由数据库生成，同样不回填 Java 对象，回查一次拿真实值
+        return taskMapper.selectById(task.getId());
     }
 
     @Override

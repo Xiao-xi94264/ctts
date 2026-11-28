@@ -28,7 +28,9 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public Project add(Project project) {
         projectMapper.insert(project);
-        return project;
+        // status / create_time / update_time 由数据库默认值生成，不回填 Java 对象，
+        // insert 之后手上这个对象这三个字段还是 null；回查一次才拿到库里的真实状态
+        return projectMapper.selectById(project.getId());
     }
 
     @Override
